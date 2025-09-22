@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/auth/:path*", "destination": "https://letting-accommodate-hansen-constraints.trycloudflare.com/auth/:path*" },
-    { "source": "/prof/:path*", "destination": "https://letting-accommodate-hansen-constraints.trycloudflare.com/prof/:path*" }
+    { "source": "/api/:path*", "destination": "https://letting-accommodate-hansen-constraints.trycloudflare.com/:path*" }
   ]
 }
