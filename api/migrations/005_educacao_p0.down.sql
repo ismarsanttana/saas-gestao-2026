@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS chamada_auditoria;
+DROP TABLE IF EXISTS aval_respostas;
+DROP TABLE IF EXISTS aval_questoes;
+DROP TABLE IF EXISTS avaliacoes;
+DROP TABLE IF EXISTS notas;
+DROP TABLE IF EXISTS presencas;
+DROP TABLE IF EXISTS aulas;
+DROP TABLE IF EXISTS matriculas;
+DROP TABLE IF EXISTS alunos;
+DROP TABLE IF EXISTS professores_turmas;
+DROP TABLE IF EXISTS turmas;
+DROP TABLE IF EXISTS escolas;

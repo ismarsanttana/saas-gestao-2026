@@ -1,0 +1,22 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema:
+      - "api/migrations/schema.sql"
+    queries: "api/internal/repo/queries"
+    gen:
+      go:
+        package: "repo"
+        out: "api/internal/repo"
+        sql_package: "pgx/v5"
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+    overrides:
+      - db_type: "uuid"
+        go_type:
+          import: "github.com/google/uuid"
+          type: "UUID"
+      - db_type: "timestamptz"
+        go_type:
+          import: "time"
+          type: "Time"

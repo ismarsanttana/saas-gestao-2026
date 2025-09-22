@@ -1,0 +1,3 @@
+ALTER TABLE aval_questoes ALTER COLUMN correta SET NOT NULL;
+ALTER TABLE avaliacoes DROP COLUMN IF EXISTS peso;
+ALTER TABLE avaliacoes DROP COLUMN IF EXISTS tipo;

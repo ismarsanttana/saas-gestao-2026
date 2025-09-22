@@ -1,0 +1,33 @@
+# macOS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Frontend (Vite/Next/etc.)
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.turbo/
+**/.vite/
+
+# Go (API)
+api/bin/
+api/tmp/
+*.test
+*.out
+coverage.out
+
+# Docker / volumes locais
+infra/**/data/
+infra/**/volumes/
+*.log
+
+# Env / segredos (NÃO versionar)
+.env
+.env.*
+!*.env.example
+
+# Outros
+*.db
+*.sqlite
