@@ -7,10 +7,18 @@ import {
   useState
 } from "react";
 
-type SaaSUser = {
+type ApiSaaSProfile = {
   id: string;
   nome: string;
   email: string;
+  role?: string;
+};
+
+type SessionUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
 };
 
 type ApiError = {
@@ -24,7 +32,7 @@ type ApiEnvelope<T> = {
 };
 
 type AuthContextValue = {
-  user: SaaSUser | null;
+  user: SessionUser | null;
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -43,7 +51,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8081";
 
 type StoredSession = {
   token: string;
-  user: SaaSUser;
+  user: SessionUser;
 };
 
 async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
@@ -58,12 +66,42 @@ async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   };
 }
 
+function mapApiProfile(profile: ApiSaaSProfile): SessionUser {
+  return {
+    id: profile.id,
+    name: profile.nome,
+    email: profile.email,
+    role: profile.role ?? "admin"
+  };
+}
+
+function normalizeStoredUser(raw: unknown): SessionUser {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("sessão inválida");
+  }
+  const candidate = raw as any;
+  if (typeof candidate.name === "string") {
+    return {
+      id: candidate.id,
+      name: candidate.name,
+      email: candidate.email,
+      role: candidate.role ?? "admin"
+    };
+  }
+  return {
+    id: candidate.id,
+    name: candidate.nome ?? candidate.name ?? "",
+    email: candidate.email,
+    role: candidate.role ?? "admin"
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SaaSUser | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const storeSession = useCallback((token: string, profile: SaaSUser) => {
+  const storeSession = useCallback((token: string, profile: SessionUser) => {
     setAccessToken(token);
     setUser(profile);
     localStorage.setItem(
@@ -87,12 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         throw new Error("refresh failed");
       }
-      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(response);
+      const payload = await parseResponse<{ access_token: string; user: ApiSaaSProfile }>(
+        response
+      );
       if (!payload.data?.access_token || !payload.data.user) {
         const message = payload.error?.message ?? "token ausente";
         throw new Error(message);
       }
-      storeSession(payload.data.access_token, payload.data.user);
+      storeSession(payload.data.access_token, mapApiProfile(payload.data.user));
       return true;
     } catch (err) {
       clearSession();
@@ -105,9 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored) as StoredSession;
+          const parsed = JSON.parse(stored) as { token: string; user: unknown };
           setAccessToken(parsed.token);
-          setUser(parsed.user);
+          setUser(normalizeStoredUser(parsed.user));
         } else {
           await refreshSession();
         }
@@ -119,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    bootstrap();
+    void bootstrap();
   }, [clearSession, refreshSession]);
 
   const login = useCallback(
@@ -137,12 +177,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(message);
       }
 
-      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(response);
+      const payload = await parseResponse<{ access_token: string; user: ApiSaaSProfile }>(
+        response
+      );
       if (!payload.data?.access_token || !payload.data.user) {
         const message = payload.error?.message ?? "Resposta inválida da API";
         throw new Error(message);
       }
-      storeSession(payload.data.access_token, payload.data.user);
+      storeSession(payload.data.access_token, mapApiProfile(payload.data.user));
     },
     [storeSession]
   );
@@ -160,8 +202,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearSession]);
 
-  const authorizedFetch = useCallback<AuthContextValue["authorizedFetch"]>(
-    async (path, options = {}) => {
+  const authorizedFetch = useCallback(
+    async <T,>(
+      path: string,
+      options: RequestInit & { parseJson?: boolean } = {}
+    ): Promise<T> => {
       const { parseJson = true, headers, ...rest } = options;
 
       const requestWithToken = async () => {
@@ -203,8 +248,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!response.ok) {
-        const payload = parseJson ? await parseResponse<unknown>(response) : null;
-        const message = payload?.error?.message ?? "Falha ao comunicar com a API";
+        if (!parseJson) {
+          throw new Error("Falha ao comunicar com a API");
+        }
+        const payload = await parseResponse<unknown>(response);
+        const message = payload.error?.message ?? "Falha ao comunicar com a API";
         throw new Error(message);
       }
 

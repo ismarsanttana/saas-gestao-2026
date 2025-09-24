@@ -124,6 +124,7 @@ type SaaSProfile struct {
 	ID    string `json:"id"`
 	Nome  string `json:"nome"`
 	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 // LoginBackoffice autentica usuários internos.
@@ -427,9 +428,9 @@ func (s *AuthService) LoginSaaS(ctx context.Context, email, password string) (*L
 	}
 
 	const audience = "saas"
-	roles := []string{"SAAS_ADMIN"}
+	claims := saasClaimsFromRole(user.Role)
 
-	token, _, err := s.jwt.GenerateAccessToken(user.ID.String(), audience, roles)
+	accessToken, _, err := s.jwt.GenerateAccessToken(user.ID.String(), audience, claims)
 	if err != nil {
 		return nil, err
 	}
@@ -444,22 +445,53 @@ func (s *AuthService) LoginSaaS(ctx context.Context, email, password string) (*L
 		return nil, err
 	}
 
+	normalizedRole := saas.NormalizeRole(user.Role)
 	profile := &SaaSProfile{
 		ID:    user.ID.String(),
 		Nome:  user.Name,
 		Email: user.Email,
+		Role:  normalizedRole,
 	}
+
+	s.recordSaaSLogin(ctx, user.ID)
 
 	return &LoginResult{
 		Audience:      audience,
-		AccessToken:   token,
+		AccessToken:   accessToken,
 		RefreshToken:  rawRefresh,
 		Subject:       user.ID,
-		Roles:         roles,
+		Roles:         claims,
 		Profile:       profile,
 		RefreshHash:   refreshHash,
 		RefreshExpiry: expires,
 	}, nil
+}
+
+func (s *AuthService) recordSaaSLogin(ctx context.Context, userID uuid.UUID) {
+	if s.saasRepo == nil {
+		return
+	}
+	if err := s.saasRepo.RecordLogin(ctx, userID); err != nil {
+		log.Warn().Err(err).Msg("login saas: failed to record last access")
+	}
+}
+
+func saasClaimsFromRole(role string) []string {
+	normalized := saas.NormalizeRole(role)
+	claims := []string{"SAAS_USER"}
+	switch normalized {
+	case saas.RoleOwner:
+		claims = append(claims, "SAAS_OWNER", "SAAS_ADMIN")
+	case saas.RoleAdmin:
+		claims = append(claims, "SAAS_ADMIN")
+	case saas.RoleSupport:
+		claims = append(claims, "SAAS_SUPPORT")
+	case saas.RoleFinance:
+		claims = append(claims, "SAAS_FINANCE")
+	default:
+		claims = append(claims, "SAAS_ADMIN")
+	}
+	return claims
 }
 
 // Refresh troca refresh token por novos tokens.

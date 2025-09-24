@@ -84,22 +84,39 @@ func RequireProfessor(next http.Handler) http.Handler {
 
 // RequireSaaSAdmin garante que o usuário é administrador SaaS.
 func RequireSaaSAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.EqualFold(GetAudience(r.Context()), "saas") {
-			writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
-			return
-		}
+	return RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER")(next)
+}
 
-		roles := GetRoles(r.Context())
-		for _, role := range roles {
-			if strings.EqualFold(role, "SAAS_ADMIN") {
-				next.ServeHTTP(w, r)
+// RequireSaaSRoles garante que o usuário SaaS possua pelo menos um dos papéis informados.
+func RequireSaaSRoles(requiredRoles ...string) func(http.Handler) http.Handler {
+	normalized := make([]string, 0, len(requiredRoles))
+	for _, role := range requiredRoles {
+		role = strings.ToUpper(strings.TrimSpace(role))
+		if role != "" {
+			normalized = append(normalized, role)
+		}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.EqualFold(GetAudience(r.Context()), "saas") {
+				writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
 				return
 			}
-		}
 
-		writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
-	})
+			roles := GetRoles(r.Context())
+			for _, role := range roles {
+				roleUpper := strings.ToUpper(strings.TrimSpace(role))
+				for _, required := range normalized {
+					if roleUpper == required {
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
+			}
+
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
+		})
+	}
 }
 
 // SetSecretaria injeta secretaria ativa no contexto.

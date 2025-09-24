@@ -17,12 +17,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/gestaozabele/municipio/internal/cloudflare"
 	"github.com/gestaozabele/municipio/internal/config"
 	httpmiddleware "github.com/gestaozabele/municipio/internal/http/middleware"
+	"github.com/gestaozabele/municipio/internal/monitor"
 	"github.com/gestaozabele/municipio/internal/prof"
+	"github.com/gestaozabele/municipio/internal/provision"
 	"github.com/gestaozabele/municipio/internal/repo"
+	"github.com/gestaozabele/municipio/internal/saas"
 	"github.com/gestaozabele/municipio/internal/service"
+	"github.com/gestaozabele/municipio/internal/settings"
+	"github.com/gestaozabele/municipio/internal/storage"
+	"github.com/gestaozabele/municipio/internal/support"
 	"github.com/gestaozabele/municipio/internal/tenant"
+	"github.com/rs/zerolog/log"
 )
 
 type Handler struct {
@@ -31,6 +39,13 @@ type Handler struct {
 	redis         *redis.Client
 	authService   *service.AuthService
 	tenants       *tenant.Service
+	saasUsers     *service.SaaSUserService
+	support       *support.Service
+	settings      *settings.Service
+	provisioner   *provision.Service
+	storage       storage.Uploader
+	monitor       *monitor.Service
+	monitorOn     bool
 	webauthn      *webauthn.WebAuthn
 	publicLimiter *httpmiddleware.RateLimiter
 	authLimiter   *httpmiddleware.RateLimiter
@@ -62,17 +77,110 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 		return nil, fmt.Errorf("webauthn: %w", err)
 	}
 
+	tenantRepo := tenant.NewRepository(pool)
+	tenantService := tenant.NewService(tenantRepo)
+	saasRepo := saas.NewRepository(pool)
+	saasUserService := service.NewSaaSUserService(saasRepo, cfg.SaaSInviteTTL)
+	supportRepo := support.NewRepository(pool)
+	supportService := support.NewService(supportRepo)
+
+	settingsRepo := settings.NewRepository(pool)
+	settingsService := settings.NewService(settingsRepo)
+
+	provisionService := provision.New(tenantService)
+
+	ctx := context.Background()
+
+	if dbCfg, err := settingsService.GetCloudflareConfig(ctx); err == nil && dbCfg.IsComplete() {
+		client, err := cloudflare.New(cloudflare.Config{
+			APIToken: dbCfg.APIToken,
+			ZoneID:   dbCfg.ZoneID,
+			APIBase:  "",
+			DoHURL:   "",
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cloudflare(db): %w", err)
+		}
+		provisionService.Apply(provision.RuntimeConfig{
+			Client: client,
+			Config: provision.Config{
+				BaseDomain:     dbCfg.BaseDomain,
+				TargetHost:     dbCfg.TargetHostname,
+				TTL:            3600,
+				DefaultProxied: dbCfg.ProxiedDefault,
+			},
+		})
+	} else if err != nil && !errors.Is(err, settings.ErrNotFound) {
+		return nil, fmt.Errorf("cloudflare(config): %w", err)
+	} else if cfg.Cloudflare.Enabled {
+		client, err := cloudflare.New(cloudflare.Config{
+			APIToken: cfg.Cloudflare.APIToken,
+			ZoneID:   cfg.Cloudflare.ZoneID,
+			APIBase:  "",
+			DoHURL:   "",
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cloudflare(env): %w", err)
+		}
+		provisionService.Apply(provision.RuntimeConfig{
+			Client: client,
+			Config: provision.Config{
+				BaseDomain:     cfg.Cloudflare.BaseDomain,
+				TargetHost:     cfg.Cloudflare.TargetHostname,
+				TTL:            3600,
+				DefaultProxied: false,
+			},
+		})
+	}
+
+	monitorRepo := monitor.NewRepository(pool)
+	monitorNotifier := monitor.NewSlackNotifier(cfg.Monitoring.SlackWebhookURL)
+	monitorLogger := log.With().Str("component", "monitor").Logger()
+	monitorService := monitor.NewService(monitorRepo, tenantService, cfg.Monitoring, monitorLogger, monitorNotifier)
+	if err := monitorService.Start(ctx); err != nil {
+		return nil, fmt.Errorf("monitor: %w", err)
+	}
+
+	var uploader storage.Uploader = storage.NoopUploader{}
+	switch cfg.Storage.Provider {
+	case "", "noop":
+		// mantém uploader padrão
+	case "s3", "r2", "cloudflare-r2":
+		s3Cfg := storage.S3Config{
+			Endpoint:     cfg.Storage.S3Endpoint,
+			Region:       cfg.Storage.S3Region,
+			Bucket:       cfg.Storage.S3Bucket,
+			AccessKey:    cfg.Storage.S3AccessKey,
+			SecretKey:    cfg.Storage.S3SecretKey,
+			PublicDomain: cfg.Storage.S3PublicURL,
+		}
+		uploader, err = storage.NewS3Uploader(s3Cfg)
+		if err != nil {
+			return nil, fmt.Errorf("storage: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("storage: provedor %s não suportado", cfg.Storage.Provider)
+	}
+
 	h := &Handler{
 		cfg:           cfg,
 		pool:          pool,
 		redis:         redisClient,
 		authService:   authService,
-		tenants:       tenant.NewService(tenant.NewRepository(pool)),
+		tenants:       tenantService,
+		saasUsers:     saasUserService,
+		support:       supportService,
+		settings:      settingsService,
+		storage:       uploader,
+		monitor:       monitorService,
+		monitorOn:     cfg.Monitoring.Enabled,
 		webauthn:      wa,
 		publicLimiter: httpmiddleware.NewRateLimiter(cfg.RateLimitPublic.RequestsPerSecond, cfg.RateLimitPublic.Burst),
 		authLimiter:   httpmiddleware.NewRateLimiter(cfg.RateLimitAuth.RequestsPerSecond, cfg.RateLimitAuth.Burst),
 		devCookies:    devCookies,
 	}
+
+	h.provisioner = provisionService
 
 	profRepo := prof.NewRepository(pool)
 	profService := prof.NewService(repo.New(pool), profRepo)
@@ -123,9 +231,45 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 
 	saasRouter := chi.NewRouter()
 	saasRouter.Use(httpmiddleware.Auth(h.authService.JWT()))
-	saasRouter.Use(httpmiddleware.RequireSaaSAdmin)
-	saasRouter.Get("/tenants", h.ListTenants)
-	saasRouter.Post("/tenants", h.CreateTenant)
+
+	saasRouter.Group(func(admin chi.Router) {
+		admin.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER"))
+		admin.Get("/tenants", h.ListTenants)
+		admin.Post("/tenants", h.CreateTenant)
+		admin.Route("/users", func(u chi.Router) {
+			u.Get("/", h.ListSaaSUsers)
+			u.Get("/invites", h.ListSaaSInvites)
+			u.Post("/", h.CreateSaaSUser)
+			u.Post("/invite", h.InviteSaaSUser)
+			u.Patch("/{id}", h.UpdateSaaSUser)
+			u.Delete("/{id}", h.DeleteSaaSUser)
+		})
+		admin.Post("/tenants/import", h.ImportTenants)
+		admin.Post("/tenants/{id}/dns/provision", h.ProvisionTenantDNS)
+		admin.Post("/tenants/{id}/dns/check", h.CheckTenantDNS)
+		admin.Route("/monitor", func(m chi.Router) {
+			m.Get("/summary", h.MonitorSummary)
+			m.Post("/run", h.MonitorRun)
+			m.Get("/tenants/{id}", h.MonitorTenant)
+		})
+		admin.Route("/settings", func(settingsRouter chi.Router) {
+			settingsRouter.Use(httpmiddleware.RequireSaaSRoles("SAAS_OWNER"))
+			settingsRouter.Get("/cloudflare", h.GetCloudflareSettings)
+			settingsRouter.Put("/cloudflare", h.UpdateCloudflareSettings)
+		})
+	})
+
+	saasRouter.Group(func(supportGroup chi.Router) {
+		supportGroup.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER", "SAAS_SUPPORT"))
+		supportGroup.Route("/tickets", func(t chi.Router) {
+			t.Get("/", h.ListSupportTickets)
+			t.Post("/", h.CreateSupportTicket)
+			t.Get("/{id}", h.GetSupportTicket)
+			t.Patch("/{id}", h.UpdateSupportTicket)
+			t.Get("/{id}/messages", h.ListSupportTicketMessages)
+			t.Post("/{id}/messages", h.AddSupportTicketMessage)
+		})
+	})
 
 	r.Mount("/saas", saasRouter)
 
@@ -730,23 +874,23 @@ func getRefreshFromRequest(r *http.Request) (string, string, error) {
 }
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string, expires time.Time) {
-    name := refreshCookieCidadao
-    switch audience {
-    case "backoffice":
-        name = refreshCookieBackoffice
-    case "saas":
-        name = refreshCookieSaaS
-    }
-    secure := !h.devCookies
-    sameSite := http.SameSiteNoneMode
-    if h.devCookies {
-        sameSite = http.SameSiteLaxMode
-    }
-    http.SetCookie(w, &http.Cookie{
-        Name:     name,
-        Value:    token,
-        Path:     "/",
-        Expires:  expires,
+	name := refreshCookieCidadao
+	switch audience {
+	case "backoffice":
+		name = refreshCookieBackoffice
+	case "saas":
+		name = refreshCookieSaaS
+	}
+	secure := !h.devCookies
+	sameSite := http.SameSiteNoneMode
+	if h.devCookies {
+		sameSite = http.SameSiteLaxMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    token,
+		Path:     "/",
+		Expires:  expires,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
@@ -754,23 +898,23 @@ func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string
 }
 
 func (h *Handler) clearRefreshCookie(w http.ResponseWriter, audience string) {
-    name := refreshCookieCidadao
-    switch audience {
-    case "backoffice":
-        name = refreshCookieBackoffice
-    case "saas":
-        name = refreshCookieSaaS
-    }
-    secure := !h.devCookies
-    sameSite := http.SameSiteNoneMode
-    if h.devCookies {
-        sameSite = http.SameSiteLaxMode
-    }
-    http.SetCookie(w, &http.Cookie{
-        Name:     name,
-        Value:    "",
-        Path:     "/",
-        MaxAge:   -1,
+	name := refreshCookieCidadao
+	switch audience {
+	case "backoffice":
+		name = refreshCookieBackoffice
+	case "saas":
+		name = refreshCookieSaaS
+	}
+	secure := !h.devCookies
+	sameSite := http.SameSiteNoneMode
+	if h.devCookies {
+		sameSite = http.SameSiteLaxMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,

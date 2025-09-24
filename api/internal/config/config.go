@@ -24,6 +24,44 @@ type Config struct {
 	WebAuthnRPID     string
 	WebAuthnRPOrigin string
 	WebAuthnRPName   string
+	Storage          StorageConfig
+	Cloudflare       CloudflareConfig
+	SaaSInviteTTL    time.Duration
+	Monitoring       MonitoringConfig
+}
+
+// StorageConfig descreve provedor padrão de blobs.
+type StorageConfig struct {
+	Provider    string
+	S3Endpoint  string
+	S3Region    string
+	S3Bucket    string
+	S3AccessKey string
+	S3SecretKey string
+	S3PublicURL string
+}
+
+// CloudflareConfig concentra integração com API da Cloudflare.
+type CloudflareConfig struct {
+	Enabled         bool
+	APIToken        string
+	AccountID       string
+	ZoneID          string
+	BaseDomain      string
+	TargetHostname  string
+	PropagationWait time.Duration
+}
+
+// MonitoringConfig configura coleta operacional.
+type MonitoringConfig struct {
+	Enabled         bool
+	Interval        time.Duration
+	RequestTimeout  time.Duration
+	SlackWebhookURL string
+	LatencyWarning  time.Duration
+	ErrorRateWarn   float64
+	LatencyCritical time.Duration
+	ErrorRateCrit   float64
 }
 
 // RateLimitConfig representa limites simples para throttling.
@@ -75,6 +113,12 @@ func Load() (*Config, error) {
 	}
 	cfg.JWTRefreshTTL = refreshTTL
 
+	inviteTTL, err := parseDurationEnv("SAAS_INVITE_TTL", 7*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	cfg.SaaSInviteTTL = inviteTTL
+
 	allowOrigins := strings.Split(getEnv("ALLOW_ORIGINS", ""), ",")
 	cfg.AllowOrigins = nil
 	for _, origin := range allowOrigins {
@@ -95,9 +139,66 @@ func Load() (*Config, error) {
 	if cfg.WebAuthnRPOrigin == "" {
 		cfg.WebAuthnRPOrigin = "http://localhost:5173"
 	}
+	cfg.Cloudflare = CloudflareConfig{
+		APIToken:       strings.TrimSpace(getEnv("CLOUDFLARE_API_TOKEN", "")),
+		AccountID:      strings.TrimSpace(getEnv("CLOUDFLARE_ACCOUNT_ID", "")),
+		ZoneID:         strings.TrimSpace(getEnv("CLOUDFLARE_ZONE_ID", "")),
+		BaseDomain:     strings.TrimSpace(getEnv("CLOUDFLARE_BASE_DOMAIN", "")),
+		TargetHostname: strings.TrimSpace(getEnv("CLOUDFLARE_TARGET_HOSTNAME", "")),
+	}
+	if wait, err := parseDurationEnv("CLOUDFLARE_PROPAGATION_WAIT", 2*time.Minute); err == nil {
+		cfg.Cloudflare.PropagationWait = wait
+	} else {
+		return nil, err
+	}
+	if cfg.Cloudflare.APIToken != "" && cfg.Cloudflare.ZoneID != "" && cfg.Cloudflare.BaseDomain != "" {
+		cfg.Cloudflare.Enabled = true
+	}
+
+	monitorInterval, err := parseDurationEnv("MONITORING_INTERVAL", 5*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	requestTimeout, err := parseDurationEnv("MONITORING_REQUEST_TIMEOUT", 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	latencyWarn, err := parseDurationEnv("MONITORING_LATENCY_WARN", 2*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	latencyCrit, err := parseDurationEnv("MONITORING_LATENCY_CRIT", 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	errorRateWarn := parseFloatEnv("MONITORING_ERROR_RATE_WARN", 0.1)
+	errorRateCrit := parseFloatEnv("MONITORING_ERROR_RATE_CRIT", 0.3)
+
+	cfg.Monitoring = MonitoringConfig{
+		Enabled:         strings.EqualFold(getEnv("MONITORING_ENABLED", "false"), "true"),
+		Interval:        monitorInterval,
+		RequestTimeout:  requestTimeout,
+		SlackWebhookURL: strings.TrimSpace(getEnv("MONITORING_SLACK_WEBHOOK", "")),
+		LatencyWarning:  latencyWarn,
+		ErrorRateWarn:   errorRateWarn,
+		LatencyCritical: latencyCrit,
+		ErrorRateCrit:   errorRateCrit,
+	}
+
 	cfg.WebAuthnRPName = strings.TrimSpace(getEnv("WEBAUTHN_RP_NAME", "Gestão Zabelê"))
 	if cfg.WebAuthnRPName == "" {
 		cfg.WebAuthnRPName = "Gestão Zabelê"
+	}
+
+	cfg.Storage = StorageConfig{
+		Provider:    strings.TrimSpace(strings.ToLower(getEnv("STORAGE_PROVIDER", "noop"))),
+		S3Endpoint:  strings.TrimSpace(getEnv("STORAGE_S3_ENDPOINT", "")),
+		S3Region:    strings.TrimSpace(getEnv("STORAGE_S3_REGION", "")),
+		S3Bucket:    strings.TrimSpace(getEnv("STORAGE_S3_BUCKET", "")),
+		S3AccessKey: strings.TrimSpace(getEnv("STORAGE_S3_ACCESS_KEY", "")),
+		S3SecretKey: strings.TrimSpace(getEnv("STORAGE_S3_SECRET_KEY", "")),
+		S3PublicURL: strings.TrimSpace(getEnv("STORAGE_S3_PUBLIC_BASE_URL", "")),
 	}
 
 	return cfg, nil
@@ -120,4 +221,16 @@ func parseDurationEnv(key string, def time.Duration) (time.Duration, error) {
 		return 0, errors.New(key + " inválido")
 	}
 	return dur, nil
+}
+
+func parseFloatEnv(key string, def float64) float64 {
+	val := strings.TrimSpace(getEnv(key, ""))
+	if val == "" {
+		return def
+	}
+	parsed, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return def
+	}
+	return parsed
 }
