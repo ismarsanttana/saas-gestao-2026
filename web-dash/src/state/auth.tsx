@@ -13,6 +13,16 @@ type SaaSUser = {
   email: string;
 };
 
+type ApiError = {
+  code?: string;
+  message?: string;
+};
+
+type ApiEnvelope<T> = {
+  data: T | null;
+  error: ApiError | null;
+};
+
 type AuthContextValue = {
   user: SaaSUser | null;
   accessToken: string | null;
@@ -36,12 +46,16 @@ type StoredSession = {
   user: SaaSUser;
 };
 
-async function parseResponse<T>(response: Response): Promise<T> {
+async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const text = await response.text();
   if (!text) {
-    return {} as T;
+    return { data: null, error: null };
   }
-  return JSON.parse(text) as T;
+  const parsed = JSON.parse(text) as Partial<ApiEnvelope<T>>;
+  return {
+    data: (parsed.data ?? null) as T | null,
+    error: parsed.error ?? null
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -73,13 +87,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         throw new Error("refresh failed");
       }
-      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(
-        response
-      );
-      if (!payload.access_token) {
-        throw new Error("token ausente");
+      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(response);
+      if (!payload.data?.access_token || !payload.data.user) {
+        const message = payload.error?.message ?? "token ausente";
+        throw new Error(message);
       }
-      storeSession(payload.access_token, payload.user);
+      storeSession(payload.data.access_token, payload.data.user);
       return true;
     } catch (err) {
       clearSession();
@@ -119,15 +132,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        const payload = await parseResponse<{ error?: { message?: string } }>(response);
+        const payload = await parseResponse<unknown>(response);
         const message = payload.error?.message ?? "Credenciais inválidas";
         throw new Error(message);
       }
 
-      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(
-        response
-      );
-      storeSession(payload.access_token, payload.user);
+      const payload = await parseResponse<{ access_token: string; user: SaaSUser }>(response);
+      if (!payload.data?.access_token || !payload.data.user) {
+        const message = payload.error?.message ?? "Resposta inválida da API";
+        throw new Error(message);
+      }
+      storeSession(payload.data.access_token, payload.data.user);
     },
     [storeSession]
   );
@@ -188,9 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!response.ok) {
-        const payload = parseJson
-          ? await parseResponse<{ error?: { message?: string } }>(response)
-          : undefined;
+        const payload = parseJson ? await parseResponse<unknown>(response) : null;
         const message = payload?.error?.message ?? "Falha ao comunicar com a API";
         throw new Error(message);
       }
@@ -199,7 +212,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {} as any;
       }
 
-      return parseResponse(response) as Promise<any>;
+      const payload = await parseResponse<T>(response);
+      if (payload.error) {
+        throw new Error(payload.error.message ?? "Falha ao comunicar com a API");
+      }
+      return (payload.data ?? ({} as T)) as T;
     },
     [accessToken, refreshSession]
   );
