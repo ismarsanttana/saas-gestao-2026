@@ -75,7 +75,7 @@ CREATE INDEX idx_usuarios_secretarias_usuario_papel ON usuarios_secretarias (usu
 CREATE TABLE tokens_refresh (
     id UUID PRIMARY KEY,
     subject UUID NOT NULL,
-    audience TEXT NOT NULL CHECK (audience IN ('backoffice', 'cidadao')),
+    audience TEXT NOT NULL CHECK (audience IN ('backoffice', 'cidadao', 'saas')),
     token_hash TEXT UNIQUE NOT NULL,
     expiracao TIMESTAMPTZ NOT NULL,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
