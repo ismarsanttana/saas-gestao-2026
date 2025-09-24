@@ -1,0 +1,72 @@
+name: Deploy API to Hetzner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy-api:
+    name: Run tests and deploy API
+    runs-on: ubuntu-latest
+    env:
+      APP_DIR: ${{ secrets.PROD_APP_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go (tooling only)
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Prepare Go build cache directory
+        run: mkdir -p api/.cache/go-build
+
+      - name: Cache Go build artifacts
+        uses: actions/cache@v4
+        with:
+          path: api/.cache/go-build
+          key: api-build-${{ runner.os }}-${{ hashFiles('api/go.sum') }}
+          restore-keys: |
+            api-build-${{ runner.os }}-
+
+      - name: Download gotip (Go tip build)
+        run: |
+          go install golang.org/dl/gotip@latest
+          $(go env GOPATH)/bin/gotip download
+
+      - name: Run API tests
+        working-directory: api
+        env:
+          GOCACHE: ${{ github.workspace }}/api/.cache/go-build
+        run: $(go env GOPATH)/bin/gotip test ./...
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script_stop: true
+          envs: APP_DIR
+          script: |
+            set -eo pipefail
+            if [ -z "${APP_DIR}" ]; then
+              echo "PROD_APP_DIR secret not set" >&2
+              exit 1
+            fi
+            mkdir -p "${APP_DIR}"
+            cd "${APP_DIR}"
+            if [ ! -d .git ]; then
+              git clone https://github.com/${{ github.repository }} .
+            else
+              git remote set-url origin https://github.com/${{ github.repository }}
+            fi
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+            cp .env.production .env 2>/dev/null || true
+            make migrate || true
+            sudo systemctl restart urbanbyte-api.service

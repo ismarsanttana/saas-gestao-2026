@@ -22,6 +22,7 @@ import (
 	"github.com/gestaozabele/municipio/internal/prof"
 	"github.com/gestaozabele/municipio/internal/repo"
 	"github.com/gestaozabele/municipio/internal/service"
+	"github.com/gestaozabele/municipio/internal/tenant"
 )
 
 type Handler struct {
@@ -29,6 +30,7 @@ type Handler struct {
 	pool          *pgxpool.Pool
 	redis         *redis.Client
 	authService   *service.AuthService
+	tenants       *tenant.Service
 	webauthn      *webauthn.WebAuthn
 	publicLimiter *httpmiddleware.RateLimiter
 	authLimiter   *httpmiddleware.RateLimiter
@@ -65,6 +67,7 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 		pool:          pool,
 		redis:         redisClient,
 		authService:   authService,
+		tenants:       tenant.NewService(tenant.NewRepository(pool)),
 		webauthn:      wa,
 		publicLimiter: httpmiddleware.NewRateLimiter(cfg.RateLimitPublic.RequestsPerSecond, cfg.RateLimitPublic.Burst),
 		authLimiter:   httpmiddleware.NewRateLimiter(cfg.RateLimitAuth.RequestsPerSecond, cfg.RateLimitAuth.Burst),
@@ -88,10 +91,12 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 
 		public.Get("/health", h.Health)
 		public.Get("/ready", h.Ready)
+		public.Get("/tenant", h.TenantConfig)
 
 		public.Route("/auth", func(auth chi.Router) {
 			auth.Post("/cidadao/login", h.LoginCidadao)
 			auth.Post("/backoffice/login", h.LoginBackoffice)
+			auth.Post("/saas/login", h.LoginSaaS)
 			auth.Post("/passkey/login/start", h.PasskeyLoginStart)
 			auth.Post("/passkey/login/finish", h.PasskeyLoginFinish)
 			auth.Post("/refresh", h.Refresh)
@@ -115,6 +120,14 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 			})
 		})
 	})
+
+	saasRouter := chi.NewRouter()
+	saasRouter.Use(httpmiddleware.Auth(h.authService.JWT()))
+	saasRouter.Use(httpmiddleware.RequireSaaSAdmin)
+	saasRouter.Get("/tenants", h.ListTenants)
+	saasRouter.Post("/tenants", h.CreateTenant)
+
+	r.Mount("/saas", saasRouter)
 
 	return r, nil
 }
@@ -450,6 +463,32 @@ func (h *Handler) LoginCidadao(w http.ResponseWriter, r *http.Request) {
 	h.writeLoginSuccess(w, result)
 }
 
+// LoginSaaS autentica administradores da plataforma.
+func (h *Handler) LoginSaaS(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email string `json:"email"`
+		Senha string `json:"senha"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		WriteError(w, http.StatusBadRequest, "VALIDATION", "JSON inválido", nil)
+		return
+	}
+
+	if strings.TrimSpace(payload.Email) == "" || strings.TrimSpace(payload.Senha) == "" {
+		WriteError(w, http.StatusBadRequest, "VALIDATION", "email e senha são obrigatórios", nil)
+		return
+	}
+
+	result, err := h.authService.LoginSaaS(r.Context(), payload.Email, payload.Senha)
+	if err != nil {
+		h.handleAuthError(w, err)
+		return
+	}
+
+	h.writeLoginSuccess(w, result)
+}
+
 // Refresh rotaciona token de acesso.
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -484,6 +523,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	h.clearRefreshCookie(w, "cidadao")
 	h.clearRefreshCookie(w, "backoffice")
+	h.clearRefreshCookie(w, "saas")
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "logged_out"})
 }
 
@@ -673,9 +713,13 @@ func toAuthenticatorTransports(values []string) []protocol.AuthenticatorTranspor
 const (
 	refreshCookieCidadao    = "cidadao"
 	refreshCookieBackoffice = "backoffice"
+	refreshCookieSaaS       = "saas"
 )
 
 func getRefreshFromRequest(r *http.Request) (string, string, error) {
+	if c, err := r.Cookie(refreshCookieSaaS); err == nil && c.Value != "" {
+		return "saas", c.Value, nil
+	}
 	if c, err := r.Cookie(refreshCookieBackoffice); err == nil && c.Value != "" {
 		return "backoffice", c.Value, nil
 	}
@@ -687,8 +731,11 @@ func getRefreshFromRequest(r *http.Request) (string, string, error) {
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string, expires time.Time) {
 	name := refreshCookieCidadao
-	if audience == "backoffice" {
+	switch audience {
+	case "backoffice":
 		name = refreshCookieBackoffice
+	case "saas":
+		name = refreshCookieSaaS
 	}
 	secure := !h.devCookies
 	sameSite := http.SameSiteStrictMode
@@ -708,8 +755,11 @@ func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string
 
 func (h *Handler) clearRefreshCookie(w http.ResponseWriter, audience string) {
 	name := refreshCookieCidadao
-	if audience == "backoffice" {
+	switch audience {
+	case "backoffice":
 		name = refreshCookieBackoffice
+	case "saas":
+		name = refreshCookieSaaS
 	}
 	secure := !h.devCookies
 	sameSite := http.SameSiteStrictMode

@@ -18,6 +18,7 @@ import (
 	"github.com/gestaozabele/municipio/internal/db"
 	internalhttp "github.com/gestaozabele/municipio/internal/http"
 	"github.com/gestaozabele/municipio/internal/repo"
+	"github.com/gestaozabele/municipio/internal/saas"
 	"github.com/gestaozabele/municipio/internal/service"
 )
 
@@ -51,8 +52,9 @@ func run() error {
 	defer redisClient.Close()
 
 	repository := repo.New(pool)
+	saasRepo := saas.NewRepository(pool)
 	jwtManager := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTAccessTTL)
-	authService := service.NewAuthService(repository, pool, redisClient, jwtManager, cfg.JWTRefreshTTL)
+	authService := service.NewAuthService(repository, saasRepo, pool, redisClient, jwtManager, cfg.JWTRefreshTTL)
 
 	handler, err := internalhttp.NewRouter(cfg, pool, redisClient, authService)
 	if err != nil {

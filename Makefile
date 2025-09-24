@@ -9,6 +9,12 @@ include $(ENV_FILE)
 export
 endif
 
+ifeq ($(strip $(DB_DSN)),)
+ifneq ($(strip $(DATABASE_URL)),)
+DB_DSN := $(DATABASE_URL)
+endif
+endif
+
 .PHONY: dev migrate migrate-down sqlc seed test stop
 
 dev:
@@ -41,7 +47,7 @@ sqlc:
 
 seed:
 	@if [ -z "$(DB_DSN)" ]; then \
-		echo "DB_DSN não definido"; \
+		echo "DB_DSN/DATABASE_URL não definido"; \
 		exit 1; \
 	fi
 	psql "$(DB_DSN)" -f infra/seeds/seed.sql

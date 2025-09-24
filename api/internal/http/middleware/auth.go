@@ -82,6 +82,26 @@ func RequireProfessor(next http.Handler) http.Handler {
 	})
 }
 
+// RequireSaaSAdmin garante que o usuário é administrador SaaS.
+func RequireSaaSAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.EqualFold(GetAudience(r.Context()), "saas") {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
+			return
+		}
+
+		roles := GetRoles(r.Context())
+		for _, role := range roles {
+			if strings.EqualFold(role, "SAAS_ADMIN") {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "acesso restrito ao SaaS")
+	})
+}
+
 // SetSecretaria injeta secretaria ativa no contexto.
 func SetSecretaria(ctx context.Context, secretariaID string) context.Context {
 	return context.WithValue(ctx, ContextKeySecretaria, secretariaID)

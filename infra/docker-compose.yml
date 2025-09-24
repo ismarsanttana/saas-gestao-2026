@@ -44,8 +44,8 @@ services:
     env_file:
       - ../.env
     environment:
-      DB_DSN: postgres://usuario:senha@postgres:5432/municipio?sslmode=disable
-      REDIS_URL: redis://redis:6379
+      DB_DSN: ${DB_DSN:-postgres://usuario:senha@postgres:5432/municipio?sslmode=disable}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     ports:
       - "8080:8080"
     restart: unless-stopped

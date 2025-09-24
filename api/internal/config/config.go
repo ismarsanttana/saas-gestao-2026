@@ -45,9 +45,12 @@ func Load() (*Config, error) {
 	}
 	cfg.Port = port
 
-	cfg.DBDSN = getEnv("DB_DSN", "")
+	cfg.DBDSN = strings.TrimSpace(getEnv("DB_DSN", ""))
 	if cfg.DBDSN == "" {
-		return nil, errors.New("DB_DSN obrigatório")
+		cfg.DBDSN = strings.TrimSpace(getEnv("DATABASE_URL", ""))
+	}
+	if cfg.DBDSN == "" {
+		return nil, errors.New("DB_DSN ou DATABASE_URL obrigatório")
 	}
 
 	cfg.RedisURL = getEnv("REDIS_URL", "")

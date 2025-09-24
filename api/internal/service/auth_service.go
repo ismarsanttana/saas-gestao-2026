@@ -14,6 +14,7 @@ import (
 
 	"github.com/gestaozabele/municipio/internal/auth"
 	"github.com/gestaozabele/municipio/internal/repo"
+	"github.com/gestaozabele/municipio/internal/saas"
 	"github.com/gestaozabele/municipio/internal/util"
 )
 
@@ -52,6 +53,7 @@ type redisCommander interface {
 // AuthService concentra regras de autenticação e sessões.
 type AuthService struct {
 	repo       authRepository
+	saasRepo   *saas.Repository
 	redis      redisCommander
 	jwt        *auth.JWTManager
 	refreshTTL time.Duration
@@ -59,8 +61,8 @@ type AuthService struct {
 }
 
 // NewAuthService cria novo serviço.
-func NewAuthService(r *repo.Queries, pool *pgxpool.Pool, redisClient *redis.Client, jwtMgr *auth.JWTManager, refreshTTL time.Duration) *AuthService {
-	return &AuthService{repo: r, pool: pool, redis: redisClient, jwt: jwtMgr, refreshTTL: refreshTTL}
+func NewAuthService(r *repo.Queries, saasRepo *saas.Repository, pool *pgxpool.Pool, redisClient *redis.Client, jwtMgr *auth.JWTManager, refreshTTL time.Duration) *AuthService {
+	return &AuthService{repo: r, saasRepo: saasRepo, pool: pool, redis: redisClient, jwt: jwtMgr, refreshTTL: refreshTTL}
 }
 
 // JWT expõe gerenciador de JWT (útil em middlewares).
@@ -115,6 +117,13 @@ type CidadaoProfile struct {
 	ID    string  `json:"id"`
 	Nome  string  `json:"nome"`
 	Email *string `json:"email"`
+}
+
+// SaaSProfile descreve administradores do SaaS.
+type SaaSProfile struct {
+	ID    string `json:"id"`
+	Nome  string `json:"nome"`
+	Email string `json:"email"`
 }
 
 // LoginBackoffice autentica usuários internos.
@@ -388,6 +397,71 @@ func (s *AuthService) LoginCidadao(ctx context.Context, email, password string) 
 	}, nil
 }
 
+// LoginSaaS autentica administradores da plataforma.
+func (s *AuthService) LoginSaaS(ctx context.Context, email, password string) (*LoginResult, error) {
+	if s.saasRepo == nil {
+		return nil, errors.New("saas repository não configurado")
+	}
+
+	user, err := s.saasRepo.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, saas.ErrNotFound) {
+			log.Warn().Msg("login saas: usuário não encontrado")
+			return nil, ErrInvalidCredentials
+		}
+		return nil, err
+	}
+
+	if !user.Active {
+		return nil, ErrAccountDisabled
+	}
+
+	ok, err := auth.Verify(password, user.PasswordHash)
+	if err != nil {
+		log.Warn().Err(err).Msg("login saas: verify password failed")
+		return nil, ErrInvalidCredentials
+	}
+	if !ok {
+		log.Warn().Msg("login saas: senha inválida")
+		return nil, ErrInvalidCredentials
+	}
+
+	const audience = "saas"
+	roles := []string{"SAAS_ADMIN"}
+
+	token, _, err := s.jwt.GenerateAccessToken(user.ID.String(), audience, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRefresh, refreshHash, err := auth.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	expires := util.Now().Add(s.refreshTTL)
+	if err := s.persistRefresh(ctx, user.ID, audience, refreshHash, expires); err != nil {
+		return nil, err
+	}
+
+	profile := &SaaSProfile{
+		ID:    user.ID.String(),
+		Nome:  user.Name,
+		Email: user.Email,
+	}
+
+	return &LoginResult{
+		Audience:      audience,
+		AccessToken:   token,
+		RefreshToken:  rawRefresh,
+		Subject:       user.ID,
+		Roles:         roles,
+		Profile:       profile,
+		RefreshHash:   refreshHash,
+		RefreshExpiry: expires,
+	}, nil
+}
+
 // Refresh troca refresh token por novos tokens.
 func (s *AuthService) Refresh(ctx context.Context, audience, rawToken string) (*LoginResult, error) {
 	if rawToken == "" {
@@ -520,6 +594,54 @@ func (s *AuthService) Refresh(ctx context.Context, audience, rawToken string) (*
 			RefreshHash:   refreshHash,
 			RefreshExpiry: expires,
 		}
+	case "saas":
+		if s.saasRepo == nil {
+			return nil, ErrRefreshInvalid
+		}
+
+		user, err := s.saasRepo.GetByID(ctx, record.Subject)
+		if err != nil {
+			if errors.Is(err, saas.ErrNotFound) {
+				return nil, ErrRefreshInvalid
+			}
+			return nil, err
+		}
+		if !user.Active {
+			return nil, ErrNoEligibleRoles
+		}
+
+		roles := []string{"SAAS_ADMIN"}
+		token, _, err := s.jwt.GenerateAccessToken(user.ID.String(), audience, roles)
+		if err != nil {
+			return nil, err
+		}
+
+		rawRefresh, refreshHash, err := auth.GenerateRefreshToken()
+		if err != nil {
+			return nil, err
+		}
+
+		expires := util.Now().Add(s.refreshTTL)
+		if err := s.persistRefresh(ctx, user.ID, audience, refreshHash, expires); err != nil {
+			return nil, err
+		}
+
+		profile := &SaaSProfile{
+			ID:    user.ID.String(),
+			Nome:  user.Name,
+			Email: user.Email,
+		}
+
+		result = &LoginResult{
+			Audience:      audience,
+			AccessToken:   token,
+			RefreshToken:  rawRefresh,
+			Subject:       user.ID,
+			Roles:         roles,
+			Profile:       profile,
+			RefreshHash:   refreshHash,
+			RefreshExpiry: expires,
+		}
 	default:
 		return nil, ErrRefreshInvalid
 	}
@@ -603,6 +725,26 @@ func (s *AuthService) GetMe(ctx context.Context, audience string, subject uuid.U
 			Email: cidadao.Email,
 		}
 		return profile, []string{"CIDADAO"}, nil
+	case "saas":
+		if s.saasRepo == nil {
+			return nil, nil, errors.New("saas repository não configurado")
+		}
+		user, err := s.saasRepo.GetByID(ctx, subject)
+		if err != nil {
+			if errors.Is(err, saas.ErrNotFound) {
+				return nil, nil, ErrNoEligibleRoles
+			}
+			return nil, nil, err
+		}
+		if !user.Active {
+			return nil, nil, ErrNoEligibleRoles
+		}
+		profile := &SaaSProfile{
+			ID:    user.ID.String(),
+			Nome:  user.Name,
+			Email: user.Email,
+		}
+		return profile, []string{"SAAS_ADMIN"}, nil
 	default:
 		return nil, nil, errors.New("audience desconhecida")
 	}
