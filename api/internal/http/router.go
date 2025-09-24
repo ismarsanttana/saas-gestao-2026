@@ -730,23 +730,23 @@ func getRefreshFromRequest(r *http.Request) (string, string, error) {
 }
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string, expires time.Time) {
-	name := refreshCookieCidadao
-	switch audience {
-	case "backoffice":
-		name = refreshCookieBackoffice
-	case "saas":
-		name = refreshCookieSaaS
-	}
-	secure := !h.devCookies
-	sameSite := http.SameSiteStrictMode
-	if h.devCookies {
-		sameSite = http.SameSiteLaxMode
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    token,
-		Path:     "/",
-		Expires:  expires,
+    name := refreshCookieCidadao
+    switch audience {
+    case "backoffice":
+        name = refreshCookieBackoffice
+    case "saas":
+        name = refreshCookieSaaS
+    }
+    secure := !h.devCookies
+    sameSite := http.SameSiteNoneMode
+    if h.devCookies {
+        sameSite = http.SameSiteLaxMode
+    }
+    http.SetCookie(w, &http.Cookie{
+        Name:     name,
+        Value:    token,
+        Path:     "/",
+        Expires:  expires,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
@@ -754,23 +754,23 @@ func (h *Handler) setRefreshCookie(w http.ResponseWriter, audience, token string
 }
 
 func (h *Handler) clearRefreshCookie(w http.ResponseWriter, audience string) {
-	name := refreshCookieCidadao
-	switch audience {
-	case "backoffice":
-		name = refreshCookieBackoffice
-	case "saas":
-		name = refreshCookieSaaS
-	}
-	secure := !h.devCookies
-	sameSite := http.SameSiteStrictMode
-	if h.devCookies {
-		sameSite = http.SameSiteLaxMode
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
+    name := refreshCookieCidadao
+    switch audience {
+    case "backoffice":
+        name = refreshCookieBackoffice
+    case "saas":
+        name = refreshCookieSaaS
+    }
+    secure := !h.devCookies
+    sameSite := http.SameSiteNoneMode
+    if h.devCookies {
+        sameSite = http.SameSiteLaxMode
+    }
+    http.SetCookie(w, &http.Cookie{
+        Name:     name,
+        Value:    "",
+        Path:     "/",
+        MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
