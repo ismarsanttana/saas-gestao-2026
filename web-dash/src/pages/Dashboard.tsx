@@ -12,10 +12,16 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      setTenants([]);
+      setIsLoading(false);
+      return;
+    }
+
     const loadTenants = async () => {
       try {
-        const data = await authorizedFetch<{ tenants: Tenant[] }>("/saas/tenants");
-        setTenants(data.tenants);
+        const data = await authorizedFetch<{ tenants?: Tenant[] }>("/saas/tenants");
+        setTenants(Array.isArray(data.tenants) ? data.tenants : []);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Falha ao carregar tenants";
         setError(message);
@@ -25,7 +31,7 @@ export default function DashboardPage() {
     };
 
     loadTenants();
-  }, [authorizedFetch]);
+  }, [authorizedFetch, user]);
 
   const handleCreated = (tenant: Tenant) => {
     setTenants((prev) => [tenant, ...prev]);

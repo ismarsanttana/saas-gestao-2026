@@ -5,7 +5,9 @@ type TenantTableProps = {
 };
 
 export default function TenantTable({ tenants }: TenantTableProps) {
-  if (tenants.length === 0) {
+  const list = Array.isArray(tenants) ? tenants : [];
+
+  if (list.length === 0) {
     return <p style={{ color: "#64748b" }}>Nenhuma prefeitura cadastrada ainda.</p>;
   }
 
@@ -21,7 +23,7 @@ export default function TenantTable({ tenants }: TenantTableProps) {
           </tr>
         </thead>
         <tbody>
-          {tenants.map((tenant) => (
+          {list.map((tenant) => (
             <tr key={tenant.id}>
               <td>
                 <strong>{tenant.display_name}</strong>
