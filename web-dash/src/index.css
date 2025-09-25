@@ -795,6 +795,31 @@ input, button, textarea, select {
   color: var(--dash-primary);
 }
 
+.dashboard-mobile-nav {
+  display: none;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.mobile-nav-link {
+  border-radius: 1rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--dash-subtext);
+}
+
+.mobile-nav-link.is-active {
+  border-color: rgba(6, 170, 72, 0.25);
+  background: rgba(6, 170, 72, 0.12);
+  color: var(--dash-primary);
+}
+
 .dashboard-hero {
   position: relative;
   overflow: hidden;
@@ -842,6 +867,65 @@ input, button, textarea, select {
   pointer-events: none;
   background: radial-gradient(circle at 80% 20%, rgba(6, 170, 72, 0.18), transparent 55%),
     radial-gradient(circle at 30% 80%, rgba(6, 170, 72, 0.1), transparent 65%);
+}
+
+.projects-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.projects-list li {
+  border-radius: 1.2rem;
+  border: 1px solid var(--dash-border);
+  padding: 1rem;
+  background: var(--dash-subtle);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.projects-list li > div {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.projects-list li > div strong {
+  color: var(--dash-text-primary);
+  font-size: 1rem;
+}
+
+.projects-list li > div span {
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  background: var(--dash-primary-soft);
+  color: var(--dash-primary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.projects-list li p {
+  margin: 0;
+  color: var(--dash-subtext);
+  font-size: 0.85rem;
+}
+
+.progress-bar {
+  position: relative;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.progress-bar div {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-strong));
 }
 
 .dashboard-banner {
@@ -1036,6 +1120,221 @@ input, button, textarea, select {
   padding: 1.5rem 0;
   font-size: 0.75rem;
   color: var(--dash-muted);
+}
+
+.contract-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.contract-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.contract-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+}
+
+.contract-label input,
+.contract-label select,
+.contract-label textarea {
+  width: 100%;
+}
+
+.contract-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.module-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.module-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+  color: var(--dash-subtext);
+  transition: border 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.module-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.module-chip.is-active {
+  border-color: rgba(6, 170, 72, 0.35);
+  background: rgba(6, 170, 72, 0.12);
+  color: var(--dash-primary);
+}
+
+.contract-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.1rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+}
+
+.contract-upload span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+}
+
+.contract-upload input[type="file"] {
+  padding: 0.6rem;
+  border-radius: 0.9rem;
+  border: 1px dashed var(--dash-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dash-subtext);
+}
+
+.attachment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachment-list li,
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: space-between;
+  border-radius: 0.9rem;
+  border: 1px solid var(--dash-border);
+  padding: 0.6rem 0.85rem;
+  background: var(--dash-surface);
+  color: var(--dash-subtext);
+  font-size: 0.85rem;
+}
+
+.attachment-list li button,
+.upload-item button {
+  border: none;
+  background: transparent;
+  color: var(--dash-primary);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.dashboard .cloudflare-settings,
+.dashboard .support-center,
+.dashboard .saas-admin,
+.dashboard .tenant-import,
+.dashboard .tenant-form,
+.dashboard .monitor-header,
+.dashboard .monitor-grid,
+.dashboard .support-center form,
+.dashboard .support-center table {
+  color: var(--dash-subtext);
+}
+
+.dashboard .cloudflare-settings h2,
+.dashboard .support-center h3,
+.dashboard .saas-admin h3,
+.dashboard .tenant-import h4,
+.dashboard .cloudflare-settings label,
+.dashboard .support-center label {
+  color: var(--dash-text-primary);
+}
+
+.dashboard .cloudflare-settings input,
+.dashboard .cloudflare-settings textarea,
+.dashboard .cloudflare-settings select,
+.dashboard .support-center input,
+.dashboard .support-center select,
+.dashboard .support-center textarea,
+.dashboard .tenant-import input,
+.dashboard .tenant-import select,
+.dashboard .tenant-import textarea,
+.dashboard .saas-admin input,
+.dashboard .saas-admin select,
+.dashboard .saas-admin textarea,
+.dashboard .tenant-form input,
+.dashboard .tenant-form select,
+.dashboard .tenant-form textarea {
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+  color: var(--dash-text-primary);
+}
+
+.dashboard .card-secondary {
+  border: 1px dashed var(--dash-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--dash-subtle);
+  margin-bottom: 1.5rem;
+  color: var(--dash-subtext);
+}
+
+.dashboard .wizard-step {
+  background: var(--dash-subtle);
+  color: var(--dash-subtext);
+}
+
+.dashboard .wizard-step.active {
+  background: rgba(6, 170, 72, 0.12);
+  color: var(--dash-primary);
+}
+
+.dashboard .table thead {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--dash-muted);
+}
+
+.dashboard .table tbody tr {
+  background: transparent;
+  color: var(--dash-text-primary);
+}
+
+.dashboard .table tbody tr:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.dashboard .monitor-summary > div {
+  background: var(--dash-subtle);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-primary);
+}
+
+.dashboard .monitor-card {
+  border-color: var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text-primary);
+}
+
+.dashboard .monitor-card dt {
+  color: var(--dash-muted);
+}
+
+.dashboard .monitor-card .monitor-status {
+  background: var(--dash-primary-soft);
+  color: var(--dash-primary);
 }
 
 @media (max-width: 1023px) {

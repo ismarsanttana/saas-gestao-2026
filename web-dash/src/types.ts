@@ -139,3 +139,35 @@ export type MonitorSummaryResponse = {
   summaries: MonitorSummary[];
   alerts: MonitorAlert[];
 };
+
+export type DashboardProject = {
+  id: string;
+  name: string;
+  status: string;
+  owner?: string;
+  description?: string;
+  progress?: number;
+  updated_at?: string;
+};
+
+export type DashboardOverviewMetrics = {
+  citizens_total?: number;
+  managers_total?: number;
+  secretaries_total?: number;
+  requests_total?: number;
+  requests_resolved?: number;
+  requests_pending?: number;
+  tenants_active?: number;
+  tenants_total?: number;
+  traffic_gb?: number;
+  mrr?: number;
+  expenses_forecast?: number;
+  revenue_forecast?: number;
+  staff_total?: number;
+  projects_in_development?: number;
+};
+
+export type DashboardOverviewResponse = {
+  metrics?: DashboardOverviewMetrics;
+  projects?: DashboardProject[];
+};
