@@ -514,15 +514,17 @@ const createDefaultConfigForm = (): ConfigFormState => ({
   confirmPassword: ""
 });
 
-const createDefaultAppCustomization = (): AppCustomizationState => ({
-  primaryColor: "#06AA48",
-  secondaryColor: "#0F172A",
-  weatherProvider: "OpenWeather",
-  weatherApiKey: "",
-  welcomeMessage: "Bem-vindo ao aplicativo Urbanbyte",
-  enablePush: true,
-  enableWeather: true
-});
+function createDefaultAppCustomization(): AppCustomizationState {
+  return {
+    primaryColor: "#06AA48",
+    secondaryColor: "#0F172A",
+    weatherProvider: "OpenWeather",
+    weatherApiKey: "",
+    welcomeMessage: "Bem-vindo ao aplicativo Urbanbyte",
+    enablePush: true,
+    enableWeather: true
+  };
+}
 
 const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
