@@ -555,6 +555,35 @@ input, button, textarea, select {
   gap: 0.6rem;
 }
 
+.topbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 0.8rem;
+  height: 2.4rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+}
+
+.topbar-avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-strong));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.topbar-user-name {
+  font-size: 0.85rem;
+  color: var(--dash-text-primary);
+  font-weight: 600;
+}
+
 .topbar-button,
 .topbar-primary {
   border-radius: 0.9rem;
@@ -1743,6 +1772,167 @@ input, button, textarea, select {
   text-align: left;
 }
 
+.access-charts {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.access-chart {
+  border: 1px solid var(--dash-border);
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: var(--dash-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.access-chart.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.access-chart h4 {
+  margin: 0;
+  color: var(--dash-text-primary);
+}
+
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.chart-bars > div {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.chart-bars > div span {
+  color: var(--dash-muted);
+}
+
+.chart-bar {
+  position: relative;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.chart-bar div {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-strong));
+}
+
+.chart-bar.mini {
+  height: 0.45rem;
+}
+
+.access-chart ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.access-chart li {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.access-chart strong {
+  color: var(--dash-text-primary);
+}
+
+.config-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.config-section h3 {
+  margin: 0;
+  color: var(--dash-text-primary);
+}
+
+.config-section label {
+  font-size: 0.85rem;
+  color: var(--dash-muted);
+}
+
+.config-section input,
+.config-section textarea,
+.app-form input,
+.app-form select,
+.app-form textarea {
+  border: 1px solid var(--dash-border);
+  background: var(--dash-subtle);
+  color: var(--dash-text-primary);
+}
+
+.app-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.app-grid {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.app-grid section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.app-grid h3 {
+  margin: 0;
+  color: var(--dash-text-primary);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--dash-muted);
+}
+
+.toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .analytics-heatmap {
   display: flex;
   flex-direction: column;
@@ -2026,6 +2216,7 @@ input, button, textarea, select {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .city-overview {
@@ -2855,4 +3046,9 @@ input:focus, textarea:focus {
 .link {
   color: #2563eb;
   font-weight: 600;
+}
+.panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }

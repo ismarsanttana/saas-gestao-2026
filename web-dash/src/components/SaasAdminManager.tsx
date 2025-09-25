@@ -3,13 +3,16 @@ import { useAuth } from "../state/auth";
 import { SaaSInvite, SaaSUser } from "../types";
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  support: "Suporte",
-  finance: "Financeiro"
+  owner: "Proprietário",
+  ceo: "CEO",
+  admin: "Administrador",
+  support: "Suporte Técnico",
+  finance: "Financeiro",
+  accounting: "Contabilidade",
+  legal: "Jurídico"
 };
 
-const ROLE_ORDER = ["owner", "admin", "support", "finance"];
+const ROLE_ORDER = ["owner", "ceo", "admin", "support", "finance", "accounting", "legal"];
 
 export default function SaasAdminManager() {
   const { authorizedFetch } = useAuth();

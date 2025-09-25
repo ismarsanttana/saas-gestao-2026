@@ -32,6 +32,8 @@ const NAV_ITEMS = [
   { id: "automation", label: "Automação & DNS", icon: "cloud" },
   { id: "projects", label: "Projetos", icon: "projects" },
   { id: "finance", label: "Financeiro", icon: "finance" },
+  { id: "app", label: "APP", icon: "app" },
+  { id: "config", label: "Configurações", icon: "settings" },
   { id: "urban-city", label: "Urban Cidade", icon: "city" },
   { id: "access-log", label: "Acessos", icon: "access" },
   { id: "admins", label: "Equipe", icon: "team" },
@@ -88,6 +90,35 @@ type FinanceFormState = {
   responsible: string;
   notes: string;
   attachments: FinanceAttachment[];
+};
+
+type MetricBreakdown = { label: string; value: number };
+
+type AccessAnalyticsState = {
+  cities: MetricBreakdown[];
+  operatingSystems: MetricBreakdown[];
+  devices: MetricBreakdown[];
+};
+
+type ConfigFormState = {
+  defaultEmail: string;
+  defaultPhone: string;
+  chatgptKey: string;
+  slackWebhook: string;
+  profileName: string;
+  password: string;
+  confirmPassword: string;
+};
+
+type AppCustomizationState = {
+  logoFileName?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  weatherProvider: string;
+  weatherApiKey: string;
+  welcomeMessage: string;
+  enablePush: boolean;
+  enableWeather: boolean;
 };
 
 const MODULE_CATALOG = [
@@ -326,6 +357,36 @@ const DEFAULT_ACCESS_LOGS: AccessLogEntry[] = [
   }
 ];
 
+const DEFAULT_APP_SETTINGS: Record<string, AppCustomizationState> = DEFAULT_CITY_INSIGHTS.reduce(
+  (acc, city) => {
+    acc[city.id] = {
+      ...createDefaultAppCustomization(),
+      welcomeMessage: `Bem-vindo ao app de ${city.name}`
+    };
+    return acc;
+  },
+  {} as Record<string, AppCustomizationState>
+);
+
+const DEFAULT_ACCESS_ANALYTICS: AccessAnalyticsState = {
+  cities: [
+    { label: "Zabelê", value: 1820 },
+    { label: "Cabaceiras", value: 2540 },
+    { label: "Outros", value: 780 }
+  ],
+  operatingSystems: [
+    { label: "iOS", value: 2100 },
+    { label: "Android", value: 2800 },
+    { label: "Windows", value: 640 },
+    { label: "macOS", value: 320 }
+  ],
+  devices: [
+    { label: "Mobile", value: 3600 },
+    { label: "Desktop", value: 950 },
+    { label: "Tablet", value: 310 }
+  ]
+};
+
 const INITIAL_MONITOR_SIGNALS: MonitorSignals = { critical: 0, warning: 0, totalAlerts: 0 };
 const INITIAL_SUPPORT_SIGNALS: SupportSignals = { open: 0, urgent: 0 };
 const INITIAL_TENANT_SIGNALS: TenantSignals = { pending: 0, dnsIssues: 0 };
@@ -443,6 +504,26 @@ const createDefaultFinanceForm = (): FinanceFormState => ({
   attachments: []
 });
 
+const createDefaultConfigForm = (): ConfigFormState => ({
+  defaultEmail: "operacoes@urbanbyte.com.br",
+  defaultPhone: "+55 83 99999-0000",
+  chatgptKey: "",
+  slackWebhook: "",
+  profileName: "Urbanbyte Admin",
+  password: "",
+  confirmPassword: ""
+});
+
+const createDefaultAppCustomization = (): AppCustomizationState => ({
+  primaryColor: "#06AA48",
+  secondaryColor: "#0F172A",
+  weatherProvider: "OpenWeather",
+  weatherApiKey: "",
+  welcomeMessage: "Bem-vindo ao aplicativo Urbanbyte",
+  enablePush: true,
+  enableWeather: true
+});
+
 const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const dashboardProjectToRecord = (project: DashboardProject): ProjectRecord => ({
@@ -494,6 +575,17 @@ const withUpdatedTasks = (project: ProjectRecord, tasks: ProjectTask[]): Project
 export default function DashboardPage() {
   const { user, logout, authorizedFetch } = useAuth();
 
+  const userInitials = useMemo(() => {
+    if (!user?.name) return "UB";
+    const parts = user.name.trim().split(/\s+/);
+    const initials = parts
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
+    return initials || "UB";
+  }, [user]);
+
   const [theme, setTheme] = useState<"light" | "dark">(() => getInitialTheme());
   const [activeSection, setActiveSection] = useState<NavItemId>("overview");
 
@@ -537,6 +629,10 @@ export default function DashboardPage() {
   const [cityInsights, setCityInsights] = useState<CityInsight[]>(DEFAULT_CITY_INSIGHTS);
   const [selectedCityId, setSelectedCityId] = useState<string>(DEFAULT_CITY_INSIGHTS[0]?.id ?? "");
   const [accessLogs, setAccessLogs] = useState<AccessLogEntry[]>(DEFAULT_ACCESS_LOGS);
+  const [accessAnalytics, setAccessAnalytics] = useState<AccessAnalyticsState>(DEFAULT_ACCESS_ANALYTICS);
+  const [configForm, setConfigForm] = useState<ConfigFormState>(createDefaultConfigForm);
+  const [appSettings, setAppSettings] = useState<Record<string, AppCustomizationState>>(DEFAULT_APP_SETTINGS);
+  const [selectedAppCityId, setSelectedAppCityId] = useState<string>(DEFAULT_CITY_INSIGHTS[0]?.id ?? "");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -605,8 +701,67 @@ export default function DashboardPage() {
             }
             return current;
           });
+          setSelectedAppCityId((current) => {
+            if (!current || !response.city_insights?.some((city) => city.id === current)) {
+              return response.city_insights[0].id;
+            }
+            return current;
+          });
+          setAppSettings((prev) => {
+            const next = { ...prev };
+            response.city_insights?.forEach((city) => {
+              if (!next[city.id]) {
+                next[city.id] = {
+                  ...createDefaultAppCustomization(),
+                  welcomeMessage: `Bem-vindo ao app de ${city.name}`
+                };
+              }
+            });
+            return next;
+          });
         }
-        if (response?.access_logs) setAccessLogs(response.access_logs);
+        if (response?.access_logs) {
+          setAccessLogs(response.access_logs);
+          if (response.access_logs.length) {
+            const cityMap = new Map<string, number>();
+            const osMap = new Map<string, number>();
+            const deviceMap = new Map<string, number>();
+
+            response.access_logs.forEach((log) => {
+              const cityLabel = log.tenant ?? "Outros";
+              cityMap.set(cityLabel, (cityMap.get(cityLabel) ?? 0) + 1);
+
+              const agent = (log.user_agent ?? "").toLowerCase();
+              let osLabel = "Outros";
+              if (agent.includes("android")) osLabel = "Android";
+              else if (agent.includes("iphone") || agent.includes("ios")) osLabel = "iOS";
+              else if (agent.includes("windows")) osLabel = "Windows";
+              else if (agent.includes("mac")) osLabel = "macOS";
+              else if (agent.includes("linux")) osLabel = "Linux";
+              osMap.set(osLabel, (osMap.get(osLabel) ?? 0) + 1);
+
+              let deviceLabel = "Desktop";
+              if (agent.includes("mobile") || agent.includes("android") || agent.includes("iphone")) {
+                deviceLabel = "Mobile";
+              } else if (agent.includes("tablet") || agent.includes("ipad")) {
+                deviceLabel = "Tablet";
+              }
+              deviceMap.set(deviceLabel, (deviceMap.get(deviceLabel) ?? 0) + 1);
+            });
+
+            const top = (source: Map<string, number>): MetricBreakdown[] =>
+              Array.from(source.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([label, value]) => ({ label, value }));
+
+            setAccessAnalytics({
+              cities: top(cityMap),
+              operatingSystems: top(osMap),
+              devices: top(deviceMap)
+            });
+          }
+        }
       } catch (err) {
         // Mantém métricas padrão se a API não estiver disponível
       }
@@ -755,6 +910,8 @@ export default function DashboardPage() {
       automation: tenantSignals.dnsIssues + monitorSignals.critical,
       projects: projectSignals.attention,
       finance: financePending,
+      app: 0,
+      config: 0,
       "urban-city": cityInsights.length,
       "access-log": accessLogs.length,
       admins: 0,
@@ -1056,6 +1213,59 @@ export default function DashboardPage() {
     );
   };
 
+  const handleSyncCity = (cityId: string) => {
+    const city = cityInsights.find((item) => item.id === cityId);
+    setMessage(
+      `Sincronização de dados iniciada para ${city?.name ?? "cidade selecionada"}.`
+    );
+    setError(null);
+  };
+
+  const handleConfigFieldChange = <K extends keyof ConfigFormState>(
+    field: K,
+    value: ConfigFormState[K]
+  ) => {
+    setConfigForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleConfigSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (configForm.password && configForm.password !== configForm.confirmPassword) {
+      setError("As senhas informadas não conferem.");
+      return;
+    }
+    setError(null);
+    setMessage("Configurações atualizadas com sucesso.");
+    setConfigForm((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+  };
+
+  const updateAppSettings = (cityId: string, patch: Partial<AppCustomizationState>) => {
+    setAppSettings((prev) => {
+      const base = prev[cityId] ?? {
+        ...createDefaultAppCustomization(),
+        welcomeMessage: `Bem-vindo ao app de ${
+          cityInsights.find((city) => city.id === cityId)?.name ?? "sua cidade"
+        }`
+      };
+      return { ...prev, [cityId]: { ...base, ...patch } };
+    });
+  };
+
+  const handleAppLogoUpload = (cityId: string, files: FileList | null) => {
+    if (!files || files.length === 0) {
+      updateAppSettings(cityId, { logoFileName: undefined });
+      return;
+    }
+    updateAppSettings(cityId, { logoFileName: files[0].name });
+  };
+
+  const handleAppSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const city = cityInsights.find((item) => item.id === selectedAppCityId);
+    setMessage(`Customizações do app de ${city?.name ?? "cidade selecionada"} atualizadas.`);
+    setError(null);
+  };
+
   const renderIcon = (icon: string) => {
     switch (icon) {
       case "home":
@@ -1095,6 +1305,24 @@ export default function DashboardPage() {
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+          </svg>
+        );
+      case "app":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3.75" y="3.75" width="16.5" height="16.5" rx="3" ry="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8.25 7.5h.01M12 7.5h.01M15.75 7.5h.01M7.5 12h9M7.5 15.75h4.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        );
+      case "settings":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path
+              d="M11.25 2.25h1.5l.34 2.7a6.996 6.996 0 012.3.963l2.308-1.336 1.06 1.06-1.336 2.308c.41.69.715 1.462.88 2.3l2.7.34v1.5l-2.7.34a6.996 6.996 0 01-.963 2.3l1.336 2.308-1.06 1.06-2.308-1.336c-.69.41-1.462.715-2.3.88l-.34 2.7h-1.5l-.34-2.7a6.996 6.996 0 01-2.3-.963l-2.308 1.336-1.06-1.06 1.336-2.308a6.996 6.996 0 01-.88-2.3l-2.7-.34v-1.5l2.7-.34c.165-.838.47-1.61.88-2.3L4.53 5.677l1.06-1.06 2.308 1.336c.69-.41 1.462-.715 2.3-.88l.34-2.7z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path d="M12 9a3 3 0 100 6 3 3 0 000-6z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         );
       case "city":
@@ -1468,7 +1696,7 @@ export default function DashboardPage() {
         <p>Acompanhe squads, tarefas e progresso das entregas estratégicas.</p>
       </header>
 
-      <div className="panel-grid two-columns">
+      <div className="panel-stack">
         <article className="panel-card">
           <div className="panel-heading">
             <div>
@@ -1763,7 +1991,7 @@ export default function DashboardPage() {
         <p>Controle fluxos de entrada, despesas operacionais e anexos fiscais.</p>
       </header>
 
-      <div className="panel-grid two-columns">
+      <div className="panel-stack">
         <article className="panel-card">
           <div className="panel-heading">
             <div>
@@ -1990,6 +2218,241 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+
+  const renderConfig = () => (
+    <div className="dashboard-section">
+      <header className="dashboard-section__header">
+        <h2>Configurações</h2>
+        <p>Defina padrões de contato, integrações e preferências da conta SaaS.</p>
+      </header>
+
+      <article className="panel-card">
+        <form className="config-grid" onSubmit={handleConfigSubmit}>
+          <div className="config-section">
+            <h3>Contato padrão</h3>
+            <label>
+              E-mail de notificações
+              <input
+                type="email"
+                value={configForm.defaultEmail}
+                onChange={(event) => handleConfigFieldChange("defaultEmail", event.target.value)}
+                placeholder="notificacoes@urbanbyte.com.br"
+              />
+            </label>
+            <label>
+              Telefone (WhatsApp)
+              <input
+                value={configForm.defaultPhone}
+                onChange={(event) => handleConfigFieldChange("defaultPhone", event.target.value)}
+                placeholder="+55 83 99999-0000"
+              />
+            </label>
+          </div>
+
+          <div className="config-section">
+            <h3>Integrações</h3>
+            <label>
+              Chave ChatGPT
+              <input
+                type="password"
+                value={configForm.chatgptKey}
+                onChange={(event) => handleConfigFieldChange("chatgptKey", event.target.value)}
+                placeholder="sk-..."
+              />
+            </label>
+            <label>
+              Webhook Slack
+              <input
+                value={configForm.slackWebhook}
+                onChange={(event) => handleConfigFieldChange("slackWebhook", event.target.value)}
+                placeholder="https://hooks.slack.com/..."
+              />
+            </label>
+          </div>
+
+          <div className="config-section">
+            <h3>Perfil</h3>
+            <label>
+              Nome exibido
+              <input
+                value={configForm.profileName}
+                onChange={(event) => handleConfigFieldChange("profileName", event.target.value)}
+                placeholder="Seu nome"
+              />
+            </label>
+            <label>
+              Foto de perfil
+              <input type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div className="config-section">
+            <h3>Segurança</h3>
+            <label>
+              Nova senha
+              <input
+                type="password"
+                value={configForm.password}
+                onChange={(event) => handleConfigFieldChange("password", event.target.value)}
+              />
+            </label>
+            <label>
+              Confirmar senha
+              <input
+                type="password"
+                value={configForm.confirmPassword}
+                onChange={(event) => handleConfigFieldChange("confirmPassword", event.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="form-actions span-2">
+            <button type="submit" className="topbar-primary">
+              Salvar configurações
+            </button>
+          </div>
+        </form>
+      </article>
+    </div>
+  );
+
+  const renderApp = () => {
+    const currentAppSettings = appSettings[selectedAppCityId] ?? createDefaultAppCustomization();
+    return (
+      <div className="dashboard-section">
+        <header className="dashboard-section__header">
+          <h2>Configuração do APP</h2>
+          <p>Personalize identidade, integrações e recursos para cada cidade.</p>
+        </header>
+
+        <article className="panel-card">
+          <form className="app-form" onSubmit={handleAppSubmit}>
+            <div className="app-header">
+              <label>
+                Cidade
+                <select
+                  value={selectedAppCityId}
+                  onChange={(event) => setSelectedAppCityId(event.target.value)}
+                >
+                  {cityInsights.map((city) => (
+                    <option key={`app-${city.id}`} value={city.id}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="topbar-primary">
+                Salvar personalização
+              </button>
+            </div>
+
+            <div className="app-grid">
+              <section>
+                <h3>Identidade visual</h3>
+                <label>
+                  Logo do app
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      handleAppLogoUpload(selectedAppCityId, event.target.files)
+                    }
+                  />
+                </label>
+                {currentAppSettings.logoFileName && (
+                  <p className="muted">{currentAppSettings.logoFileName}</p>
+                )}
+                <label>
+                  Cor primária
+                  <input
+                    type="color"
+                    value={currentAppSettings.primaryColor}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { primaryColor: event.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Cor secundária
+                  <input
+                    type="color"
+                    value={currentAppSettings.secondaryColor}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { secondaryColor: event.target.value })
+                    }
+                  />
+                </label>
+              </section>
+
+              <section>
+                <h3>Conteúdo e mensagens</h3>
+                <label>
+                  Mensagem de boas-vindas
+                  <textarea
+                    rows={3}
+                    value={currentAppSettings.welcomeMessage}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, {
+                        welcomeMessage: event.target.value
+                      })
+                    }
+                  />
+                </label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={currentAppSettings.enablePush}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { enablePush: event.target.checked })
+                    }
+                  />
+                  <span>Ativar push transacionais automáticos</span>
+                </label>
+              </section>
+
+              <section>
+                <h3>Serviços conectados</h3>
+                <label>
+                  Provedor de clima
+                  <select
+                    value={currentAppSettings.weatherProvider}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { weatherProvider: event.target.value })
+                    }
+                  >
+                    <option value="OpenWeather">OpenWeather</option>
+                    <option value="Climatempo">Climatempo</option>
+                    <option value="AccuWeather">AccuWeather</option>
+                  </select>
+                </label>
+                <label>
+                  API Key clima
+                  <input
+                    value={currentAppSettings.weatherApiKey}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { weatherApiKey: event.target.value })
+                    }
+                    placeholder="Informe a chave de API"
+                  />
+                </label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={currentAppSettings.enableWeather}
+                    onChange={(event) =>
+                      updateAppSettings(selectedAppCityId, { enableWeather: event.target.checked })
+                    }
+                  />
+                  <span>Exibir widget de previsão do tempo</span>
+                </label>
+              </section>
+            </div>
+          </form>
+        </article>
+      </div>
+    );
+  };
+
 
   const renderTenants = () => (
     <div className="dashboard-section">
@@ -2228,6 +2691,13 @@ export default function DashboardPage() {
                 ))}
               </select>
             </label>
+            <button
+              type="button"
+              className="topbar-button"
+              onClick={() => handleSyncCity(selectedCityId)}
+            >
+              Sincronizar agora
+            </button>
             <button type="button" className="topbar-button">
               Exportar PDF
             </button>
@@ -2290,6 +2760,65 @@ export default function DashboardPage() {
           <button type="button" className="topbar-button">
             Exportar CSV
           </button>
+        </div>
+
+        <div className="access-charts">
+          <div className="access-chart">
+            <h4>Distribuição por cidade</h4>
+            <div className="chart-bars">
+              {accessAnalytics.cities.map((item) => {
+                const max = Math.max(...accessAnalytics.cities.map((c) => c.value), 1);
+                const width = Math.max((item.value / max) * 100, 8);
+                return (
+                  <div key={`city-${item.label}`}>
+                    <span>{item.label}</span>
+                    <div className="chart-bar">
+                      <div style={{ width: `${width}%` }} />
+                    </div>
+                    <strong>{formatNumber(item.value)}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="access-chart grid">
+            <div>
+              <h4>Sistema operacional</h4>
+              <ul>
+                {accessAnalytics.operatingSystems.map((item) => {
+                  const max = Math.max(...accessAnalytics.operatingSystems.map((os) => os.value), 1);
+                  const width = Math.max((item.value / max) * 100, 8);
+                  return (
+                    <li key={`os-${item.label}`}>
+                      <span>{item.label}</span>
+                      <div className="chart-bar mini">
+                        <div style={{ width: `${width}%` }} />
+                      </div>
+                      <strong>{formatNumber(item.value)}</strong>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            <div>
+              <h4>Dispositivos</h4>
+              <ul>
+                {accessAnalytics.devices.map((item) => {
+                  const max = Math.max(...accessAnalytics.devices.map((device) => device.value), 1);
+                  const width = Math.max((item.value / max) * 100, 8);
+                  return (
+                    <li key={`device-${item.label}`}>
+                      <span>{item.label}</span>
+                      <div className="chart-bar mini">
+                        <div style={{ width: `${width}%` }} />
+                      </div>
+                      <strong>{formatNumber(item.value)}</strong>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div className="access-table-wrapper">
@@ -2383,6 +2912,10 @@ export default function DashboardPage() {
             <button type="button" className="topbar-primary">
               Exportar
             </button>
+            <div className="topbar-user">
+              <div className="topbar-avatar">{userInitials}</div>
+              <span className="topbar-user-name">{user?.name ?? "Operador"}</span>
+            </div>
             <button type="button" className="topbar-button" onClick={logout}>
               Sair
             </button>
@@ -2464,6 +2997,8 @@ export default function DashboardPage() {
             {activeSection === "automation" && renderAutomation()}
             {activeSection === "projects" && renderProjects()}
             {activeSection === "finance" && renderFinance()}
+            {activeSection === "app" && renderApp()}
+            {activeSection === "config" && renderConfig()}
             {activeSection === "urban-city" && renderUrbanCity()}
             {activeSection === "access-log" && renderAccessLog()}
             {activeSection === "tenants" && renderTenants()}
