@@ -69,7 +69,7 @@ body {
   width: 100%;
   min-height: clamp(420px, 82vh, 720px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
 }
 
@@ -78,7 +78,7 @@ body {
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
   max-width: 420px;
   margin-left: auto;
   align-items: flex-start;
@@ -238,20 +238,25 @@ body {
   color: rgba(148, 197, 255, 0.8);
 }
 
+
 .urbanbyte-logo {
-  position: absolute;
-  top: 6%;
-  left: 50%;
-  transform: translate(-50%, 0);
-  width: clamp(420px, 80vw, 920px);
+  position: relative;
+  width: clamp(240px, 32vw, 340px);
+  margin-bottom: 1.4rem;
   pointer-events: none;
   color: #ffffff;
   z-index: 1;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .urbanbyte-logo__mesh {
   position: absolute;
-  inset: -10% 0 0;
+  top: -55%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: clamp(380px, 70vw, 760px);
+  max-width: 760px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,7 +266,7 @@ body {
 .urbanbyte-logo__neural {
   width: 100%;
   height: auto;
-  opacity: 0.5;
+  opacity: 0.48;
 }
 
 .neural-web__layer {
@@ -280,16 +285,14 @@ body {
 }
 
 .urbanbyte-logo__brand {
-  position: absolute;
-  top: clamp(12%, 18vh, 32%);
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  width: 100%;
   pointer-events: none;
   z-index: 2;
 }
 
 .urbanbyte-logo__mark {
-  width: clamp(220px, 30vw, 320px);
+  width: 100%;
   height: auto;
   display: block;
   filter: drop-shadow(0 18px 40px rgba(8, 139, 255, 0.45));
@@ -353,12 +356,11 @@ body {
   }
 
   .urbanbyte-logo {
-    top: 8%;
-    width: clamp(360px, 95vw, 860px);
+    width: clamp(220px, 65vw, 320px);
   }
 
   .urbanbyte-logo__brand {
-    top: clamp(18%, 20vh, 32%);
+    width: 100%;
   }
 
   .login-panel {
