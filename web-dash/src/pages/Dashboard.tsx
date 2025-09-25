@@ -34,19 +34,19 @@ export default function DashboardPage() {
   const adminsRef = useRef<HTMLElement | null>(null);
   const supportRef = useRef<HTMLElement | null>(null);
 
-  const sections = useMemo(
+  const navItems = useMemo(
     () => [
-      { id: "overview", label: "Visão geral", ref: overviewRef },
-      { id: "automation", label: "Automação & DNS", ref: automationRef },
-      { id: "tenants", label: "Prefeituras", ref: tenantsRef },
-      { id: "admins", label: "Equipe SaaS", ref: adminsRef },
-      { id: "support", label: "Suporte", ref: supportRef }
+      { id: "overview", label: "Visão geral", icon: "home", ref: overviewRef },
+      { id: "tenants", label: "Prefeituras", icon: "building", ref: tenantsRef },
+      { id: "automation", label: "Automação & DNS", icon: "cloud", ref: automationRef },
+      { id: "admins", label: "Equipe", icon: "team", ref: adminsRef },
+      { id: "support", label: "Suporte", icon: "support", ref: supportRef }
     ],
     []
   );
 
   const scrollToSection = (sectionId: string) => {
-    const target = sections.find((item) => item.id === sectionId)?.ref.current;
+    const target = navItems.find((item) => item.id === sectionId)?.ref.current;
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveSection(sectionId);
@@ -65,7 +65,7 @@ export default function DashboardPage() {
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (visible?.target) {
-          const match = sections.find((item) => item.ref.current === visible.target);
+          const match = navItems.find((item) => item.ref.current === visible.target);
           if (match) {
             setActiveSection(match.id);
           }
@@ -74,13 +74,13 @@ export default function DashboardPage() {
       { threshold: 0.35 }
     );
 
-    sections.forEach((section) => {
+    navItems.forEach((section) => {
       const node = section.ref.current;
       if (node) observer.observe(node);
     });
 
     return () => observer.disconnect();
-  }, [sections]);
+  }, [navItems]);
 
   useEffect(() => {
     if (!user) {
@@ -216,56 +216,133 @@ export default function DashboardPage() {
     } as Record<string, number>;
   }, [monitorSignals, supportSignals, tenantSignals]);
 
+  const renderIcon = (icon: string) => {
+    switch (icon) {
+      case "home":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 11.25L12 3l9 8.25v9.5a.75.75 0 01-.75.75h-5.25a.75.75 0 01-.75-.75V14.25h-4.5v6.5a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75v-9.5z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        );
+      case "building":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.75 21.75h16.5M5.25 21.75V4.5a.75.75 0 01.75-.75h4.5a.75.75 0 01.75.75v17.25m-6 0h6m0 0V9a.75.75 0 01.75-.75h4.5a.75.75 0 01.75.75v12.75m-6 0h6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        );
+      case "cloud":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4.5 15.75a4.5 4.5 0 010-9c.69 0 1.342.147 1.931.41A6 6 0 0118 7.5a4.5 4.5 0 01.75 8.928" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        );
+      case "team":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15.75 6A3.75 3.75 0 1112 2.25 3.75 3.75 0 0115.75 6zm-7.5 5.25A3.75 3.75 0 114.5 7.5a3.75 3.75 0 013.75 3.75zm8.25 7.5a3.75 3.75 0 10-7.5 0" strokeLinecap="round" strokeLinejoin="round" /><path d="M2.905 21.75a6.38 6.38 0 0110.19-4.926M21.095 21.75a6.378 6.378 0 00-5.206-6.279" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        );
+      case "support":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 6a6 6 0 00-6 6v4.5A1.5 1.5 0 007.5 18h9a1.5 1.5 0 001.5-1.5V12a6 6 0 00-6-6zm0 0V3m0 15v3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={`dashboard theme-${theme}`}>
-      <header className="dashboard-header">
-        <div className="dashboard-brand">
-          <img src="/assets/urbanbyte-lockup.png" alt="Urbanbyte" />
-          <div className="dashboard-brand__copy">
-            <span>Startup Control Center</span>
-            <h1>Governança SaaS Urbanbyte</h1>
+      <header className="dashboard-topbar">
+        <div className="topbar-info">
+          <div className="topbar-monogram">UB</div>
+          <div>
+            <span className="topbar-caption">Conectado como {user ? user.name : "Operador"}</span>
+            <strong>Painel Operacional</strong>
           </div>
         </div>
-        <div className="dashboard-header__actions">
-          <button type="button" className="theme-toggle" onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}>
-            {theme === "dark" ? "Modo claro" : "Modo escuro"}
+        <div className="topbar-actions">
+          <button type="button" className="topbar-button" onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}>
+            <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+            <span className="hide-sm">Tema</span>
           </button>
-          {user && (
-            <div className="dashboard-user">
-              <span>{user.name}</span>
-              <small>{user.role}</small>
-            </div>
-          )}
-          <button type="button" className="logout-btn" onClick={logout}>
+          <button type="button" className="topbar-button hide-md">Demo</button>
+          <button type="button" className="topbar-primary">Exportar</button>
+          <button type="button" className="topbar-button" onClick={logout}>
             Sair
           </button>
         </div>
       </header>
 
-      <nav className="dashboard-nav">
-        {sections.map((section) => {
-          const badge = navBadges[section.id] ?? 0;
-          return (
-            <button
-              key={section.id}
-              type="button"
-              className={`dashboard-nav__link ${activeSection === section.id ? "is-active" : ""}`}
-              onClick={() => scrollToSection(section.id)}
-            >
-              {section.label}
-              {badge > 0 && <span className="nav-badge">{badge}</span>}
+      <div className="dashboard-shell">
+        <aside className="dashboard-sidebar">
+          <div className="sidebar-header">
+            <div className="sidebar-logo">
+              <div className="sidebar-monogram">UB</div>
+              <div>
+                <strong>Urbanbyte</strong>
+                <span>SaaS Control Center</span>
+              </div>
+            </div>
+            <button type="button" className="sidebar-refresh" title="Atualizar" onClick={() => navItems[0].ref.current?.scrollIntoView({ behavior: "smooth" })}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
-          );
-        })}
-      </nav>
-
-      <main className="dashboard-body">
-        {(error || message) && (
-          <div className="dashboard-banner">
-            {error && <span className="dashboard-banner__error">{error}</span>}
-            {message && <span className="dashboard-banner__success">{message}</span>}
           </div>
-        )}
+
+          <nav className="sidebar-nav">
+            {navItems.map((item) => {
+              const badge = navBadges[item.id] ?? 0;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`sidebar-link ${activeSection === item.id ? "is-active" : ""}`}
+                  onClick={() => scrollToSection(item.id)}
+                >
+                  <span className="sidebar-icon">{renderIcon(item.icon)}</span>
+                  <span>{item.label}</span>
+                  {badge > 0 && <span className="sidebar-badge">{badge}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="sidebar-callout">
+            <div className="callout-title">Onboarding acelerado</div>
+            <p>Provisionamento automático de DNS, identidade e equipe inicial.</p>
+            <button type="button" onClick={() => scrollToSection("tenants")}>Iniciar onboarding</button>
+          </div>
+        </aside>
+
+        <main className="dashboard-main">
+          <nav className="dashboard-mobile-nav">
+            {navItems.map((item) => {
+              const badge = navBadges[item.id] ?? 0;
+              return (
+                <button
+                  key={`mobile-${item.id}`}
+                  type="button"
+                  className={`mobile-nav-link ${activeSection === item.id ? "is-active" : ""}`}
+                  onClick={() => scrollToSection(item.id)}
+                >
+                  <span className="sidebar-icon">{renderIcon(item.icon)}</span>
+                  <span>{item.label}</span>
+                  {badge > 0 && <span className="nav-badge">{badge}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <section className="dashboard-hero">
+            <div className="hero-copy">
+              <h2>Bem-vindo ao hub operacional do seu SaaS municipal</h2>
+              <p>Gerencie DNS, onboarding, equipe e saúde de todos os tenants com um visual moderno e ações rápidas.</p>
+              <div className="hero-actions">
+                <button type="button" className="topbar-primary" onClick={() => scrollToSection("tenants")}>Provisionar nova prefeitura</button>
+                <button type="button" className="topbar-button">Ver tour</button>
+              </div>
+            </div>
+            <div className="hero-art" aria-hidden="true" />
+          </section>
+
+          {(error || message) && (
+            <div className="dashboard-banner">
+              {error && <span className="dashboard-banner__error">{error}</span>}
+              {message && <span className="dashboard-banner__success">{message}</span>}
+            </div>
+          )}
 
         <section ref={overviewRef} id="overview" className="dashboard-section">
           <header className="dashboard-section__header">
@@ -358,5 +435,6 @@ export default function DashboardPage() {
         </section>
       </main>
     </div>
+  </div>
   );
 }
