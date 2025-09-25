@@ -1676,6 +1676,395 @@ input, button, textarea, select {
   font-weight: 600;
 }
 
+.retention-card .panel-heading,
+.analytics-card .panel-heading,
+.compliance-card .panel-heading,
+.communication-card .panel-heading,
+.city-card .panel-heading,
+.access-card .panel-heading {
+  align-items: center;
+}
+
+.retention-kpis,
+.city-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.retention-kpis div,
+.city-kpis div {
+  border: 1px solid var(--dash-border);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  background: var(--dash-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.retention-kpis span,
+.city-kpis span {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.retention-kpis strong,
+.city-kpis strong {
+  font-size: 1rem;
+  color: var(--dash-text-primary);
+}
+
+.retention-table,
+.access-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.retention-table thead,
+.access-table thead {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+}
+
+.retention-table th,
+.retention-table td,
+.access-table th,
+.access-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--dash-border);
+  text-align: left;
+}
+
+.analytics-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.heatmap-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.heatmap-row strong {
+  font-size: 0.85rem;
+  color: var(--dash-text-primary);
+}
+
+.heatmap-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  gap: 0.4rem;
+}
+
+.heatmap-bars span {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(6, 170, 72, 0.12);
+  color: var(--dash-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+.heatmap-bars span::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: calc(var(--bar-value, 0) * 100%);
+  background: linear-gradient(135deg, var(--dash-primary), var(--dash-primary-strong));
+  border-radius: 0.75rem;
+  opacity: 0.35;
+}
+
+.heatmap-bars span em {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.heatmap-bars span b {
+  font-size: 0.85rem;
+  z-index: 1;
+}
+
+.analytics-funnel,
+.analytics-ranking {
+  margin-top: 1rem;
+}
+
+.analytics-funnel h4,
+.analytics-ranking h4 {
+  margin: 0 0 0.5rem;
+  color: var(--dash-text-primary);
+}
+
+.analytics-funnel ul,
+.analytics-ranking ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.analytics-funnel li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.9rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--dash-subtle);
+}
+
+.analytics-funnel li div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.analytics-funnel li strong {
+  color: var(--dash-text-primary);
+}
+
+.analytics-funnel li span {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+.funnel-conversion {
+  font-weight: 600;
+  color: var(--dash-primary);
+}
+
+.analytics-ranking ol li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0.8rem;
+  border: 1px solid var(--dash-border);
+  padding: 0.6rem 0.8rem;
+  background: var(--dash-subtle);
+}
+
+.analytics-ranking ol li span {
+  color: var(--dash-text-primary);
+}
+
+.compliance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.compliance-item {
+  border: 1px solid var(--dash-border);
+  border-radius: 1.1rem;
+  padding: 0.9rem;
+  background: var(--dash-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.compliance-item header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.compliance-audits ul,
+.compliance-reports ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compliance-audits li,
+.compliance-reports li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--dash-surface);
+  font-size: 0.8rem;
+}
+
+.compliance-audits li.is-alert {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.compliance-audits li div,
+.compliance-reports li div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.communication-tabs {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.communication-tabs button {
+  border-radius: 0.75rem;
+  border: 1px solid var(--dash-border);
+  padding: 0.35rem 0.85rem;
+  background: transparent;
+  color: var(--dash-subtext);
+  font-weight: 600;
+}
+
+.communication-tabs button.is-active {
+  background: var(--dash-primary-soft);
+  color: var(--dash-primary);
+  border-color: rgba(6, 170, 72, 0.35);
+}
+
+.communication-announcements,
+.communication-queue {
+  margin-top: 1rem;
+}
+
+.communication-announcements h4,
+.communication-queue h4,
+.city-overview h4 {
+  margin: 0 0 0.5rem;
+  color: var(--dash-text-primary);
+}
+
+.communication-announcements ul,
+.communication-queue ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.communication-announcements li,
+.communication-queue li {
+  border: 1px solid var(--dash-border);
+  border-radius: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--dash-surface);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.communication-announcements li div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.communication-queue .push-item {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.push-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.push-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.push-actions button {
+  border-radius: 0.75rem;
+  border: 1px solid var(--dash-border);
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  color: var(--dash-primary);
+  font-weight: 600;
+}
+
+.push-item.status-pending {
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.push-item.status-approved {
+  border-color: rgba(6, 170, 72, 0.35);
+}
+
+.push-item.status-rejected {
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+.city-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.city-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.city-highlights ul {
+  list-style: disc;
+  margin: 0.4rem 0 0 1.2rem;
+  color: var(--dash-subtext);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.city-sync {
+  font-size: 0.85rem;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--dash-muted);
+}
+
+.city-sync strong {
+  color: var(--dash-text-primary);
+}
+
+.access-table-wrapper {
+  overflow-x: auto;
+}
+
+.access-table td span {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--dash-muted);
+}
+
 .dashboard .cloudflare-settings,
 .dashboard .support-center,
 .dashboard .saas-admin,

@@ -165,11 +165,19 @@ export type DashboardOverviewMetrics = {
   revenue_forecast?: number;
   staff_total?: number;
   projects_in_development?: number;
+  users_online?: number;
+  total_accesses?: number;
 };
 
 export type DashboardOverviewResponse = {
   metrics?: DashboardOverviewMetrics;
   projects?: DashboardProject[];
+  retention?: RetentionSummary;
+  usage?: UsageAnalytics;
+  compliance?: ComplianceRecord[];
+  communication?: CommunicationCenter;
+  city_insights?: CityInsight[];
+  access_logs?: AccessLogEntry[];
 };
 
 export type ProjectTask = {
@@ -225,4 +233,118 @@ export type FinanceSummary = {
   cash_out: number;
   net: number;
   pending: number;
+};
+
+export type RetentionCohort = {
+  month: string;
+  tenants: number;
+  churn: number;
+  expansion: number;
+  nps: number;
+  engagement: number;
+};
+
+export type RetentionSummary = {
+  cohorts: RetentionCohort[];
+  churn_rate: number;
+  expansion_rate: number;
+  nps_global: number;
+  active_tenants: number;
+};
+
+export type ModuleUsageHeatmap = {
+  module: string;
+  labels: string[];
+  usage: number[];
+};
+
+export type FunnelStage = {
+  stage: string;
+  value: number;
+  conversion: number;
+};
+
+export type SecretariatRanking = {
+  name: string;
+  interactions: number;
+};
+
+export type UsageAnalytics = {
+  heatmap: ModuleUsageHeatmap[];
+  citizen_funnel: FunnelStage[];
+  top_secretariats: SecretariatRanking[];
+};
+
+export type ComplianceAudit = {
+  id: string;
+  actor: string;
+  action: string;
+  performed_at: string;
+  channel: string;
+  sla_breach?: boolean;
+};
+
+export type ComplianceReport = {
+  id: string;
+  title: string;
+  period: string;
+  status: string;
+  url?: string;
+};
+
+export type ComplianceRecord = {
+  tenant_id: string;
+  tenant_name: string;
+  audits: ComplianceAudit[];
+  reports: ComplianceReport[];
+};
+
+export type CommunicationAnnouncement = {
+  id: string;
+  title: string;
+  published_at: string;
+  author: string;
+  audience: string;
+  status: string;
+};
+
+export type PushNotificationRequest = {
+  id: string;
+  tenant_name: string;
+  created_at: string;
+  type: "manual" | "automatic";
+  channel: string;
+  status: "pending" | "approved" | "rejected";
+  subject: string;
+  summary?: string;
+  scheduled_for?: string;
+};
+
+export type CommunicationCenter = {
+  announcements: CommunicationAnnouncement[];
+  push_queue: PushNotificationRequest[];
+  history: PushNotificationRequest[];
+};
+
+export type CityInsight = {
+  id: string;
+  name: string;
+  population: number;
+  active_users: number;
+  requests_total: number;
+  satisfaction: number;
+  last_sync: string;
+  highlights: string[];
+};
+
+export type AccessLogEntry = {
+  id: string;
+  user: string;
+  role: string;
+  tenant?: string;
+  logged_at: string;
+  ip: string;
+  location: string;
+  user_agent: string;
+  status: string;
 };

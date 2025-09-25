@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import CloudflareSettings from "../components/CloudflareSettings";
 import MonitorDashboard from "../components/MonitorDashboard";
@@ -15,6 +15,12 @@ import {
   FinanceAttachment,
   FinanceEntry,
   FinanceSummary,
+  AccessLogEntry,
+  CityInsight,
+  CommunicationCenter,
+  ComplianceRecord,
+  RetentionSummary,
+  UsageAnalytics,
   ProjectRecord,
   ProjectTask,
   Tenant
@@ -26,6 +32,8 @@ const NAV_ITEMS = [
   { id: "automation", label: "Automação & DNS", icon: "cloud" },
   { id: "projects", label: "Projetos", icon: "projects" },
   { id: "finance", label: "Financeiro", icon: "finance" },
+  { id: "urban-city", label: "Urban Cidade", icon: "city" },
+  { id: "access-log", label: "Acessos", icon: "access" },
   { id: "admins", label: "Equipe", icon: "team" },
   { id: "support", label: "Suporte", icon: "support" }
 ] as const;
@@ -103,7 +111,9 @@ const DEFAULT_OVERVIEW_METRICS: DashboardOverviewMetrics = {
   mrr: 0,
   expenses_forecast: 0,
   revenue_forecast: 0,
-  staff_total: 0
+  staff_total: 0,
+  users_online: 0,
+  total_accesses: 0
 };
 
 const DEFAULT_PROJECTS: DashboardProject[] = [
@@ -147,6 +157,172 @@ const DEFAULT_FINANCE_ENTRIES: FinanceEntry[] = [
     notes: "Pago via conciliação automática.",
     attachments: [],
     created_at: new Date().toISOString()
+  }
+];
+
+const DEFAULT_RETENTION: RetentionSummary = {
+  cohorts: [
+    { month: "2025-01", tenants: 6, churn: 0, expansion: 2, nps: 68, engagement: 72 },
+    { month: "2025-02", tenants: 8, churn: 1, expansion: 3, nps: 74, engagement: 79 },
+    { month: "2025-03", tenants: 11, churn: 1, expansion: 4, nps: 79, engagement: 83 },
+    { month: "2025-04", tenants: 15, churn: 1, expansion: 5, nps: 82, engagement: 86 }
+  ],
+  churn_rate: 6,
+  expansion_rate: 24,
+  nps_global: 78,
+  active_tenants: 14
+};
+
+const DEFAULT_USAGE_ANALYTICS: UsageAnalytics = {
+  heatmap: [
+    {
+      module: "Portal do cidadão",
+      labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+      usage: [420, 460, 510, 540, 590, 220, 180]
+    },
+    {
+      module: "Suporte digital",
+      labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+      usage: [180, 210, 260, 230, 200, 120, 90]
+    }
+  ],
+  citizen_funnel: [
+    { stage: "Acessos", value: 12800, conversion: 100 },
+    { stage: "Autenticados", value: 6400, conversion: 50 },
+    { stage: "Solicitações iniciadas", value: 4200, conversion: 33 },
+    { stage: "Solicitações concluídas", value: 3100, conversion: 24 }
+  ],
+  top_secretariats: [
+    { name: "Assistência Social", interactions: 1280 },
+    { name: "Tributos", interactions: 960 },
+    { name: "Educação", interactions: 780 }
+  ]
+};
+
+const DEFAULT_COMPLIANCE: ComplianceRecord[] = [
+  {
+    tenant_id: "tenant-zabele",
+    tenant_name: "Prefeitura de Zabelê",
+    audits: [
+      {
+        id: "audit-001",
+        actor: "João Silva",
+        action: "Exportou relatório financeiro",
+        performed_at: "2025-05-02T14:22:00Z",
+        channel: "Painel",
+        sla_breach: false
+      },
+      {
+        id: "audit-002",
+        actor: "Processo automático",
+        action: "Verificação de backups concluída",
+        performed_at: "2025-05-02T02:05:00Z",
+        channel: "Agente",
+        sla_breach: false
+      }
+    ],
+    reports: [
+      { id: "report-2025Q1", title: "Relatório TCM Q1", period: "Jan/Mar 2025", status: "Entregue", url: "https://example.com/report.pdf" },
+      { id: "report-lgpd", title: "Auditoria LGPD", period: "Abr 2025", status: "Em análise" }
+    ]
+  }
+];
+
+const DEFAULT_COMMUNICATION_CENTER: CommunicationCenter = {
+  announcements: [
+    {
+      id: "announce-001",
+      title: "Atualização do módulo de tickets",
+      published_at: "2025-05-01T09:00:00Z",
+      author: "Equipe Urbanbyte",
+      audience: "Todas as prefeituras",
+      status: "Publicado"
+    }
+  ],
+  push_queue: [
+    {
+      id: "push-req-001",
+      tenant_name: "Secretaria de Educação - Zabelê",
+      created_at: "2025-05-03T13:45:00Z",
+      type: "manual",
+      channel: "Push cidadão",
+      status: "pending",
+      subject: "Campanha de matrícula 2025",
+      summary: "Divulgação do calendário de matrícula nas escolas municipais",
+      scheduled_for: "2025-05-05T12:00:00Z"
+    }
+  ],
+  history: [
+    {
+      id: "push-req-000",
+      tenant_name: "Automação Urbanbyte",
+      created_at: "2025-04-28T10:00:00Z",
+      type: "automatic",
+      channel: "Push cidadão",
+      status: "approved",
+      subject: "Lembrete de agendamento de vacinação",
+      summary: "Envio automático D-1 para cidadãos com agendamento",
+      scheduled_for: "2025-04-29T08:00:00Z"
+    }
+  ]
+};
+
+const DEFAULT_CITY_INSIGHTS: CityInsight[] = [
+  {
+    id: "zabele",
+    name: "Zabelê",
+    population: 7500,
+    active_users: 1820,
+    requests_total: 4280,
+    satisfaction: 87,
+    last_sync: "2025-05-03T05:00:00Z",
+    highlights: ["Alta adesão ao app cidadão", "Portal de Tributos com 98% de disponibilidade"]
+  },
+  {
+    id: "cabaceiras",
+    name: "Cabaceiras",
+    population: 12000,
+    active_users: 2540,
+    requests_total: 6120,
+    satisfaction: 82,
+    last_sync: "2025-05-03T05:00:00Z",
+    highlights: ["Integração Cloudflare 100% propagada", "Projetos de iluminação inteligente em andamento"]
+  }
+];
+
+const DEFAULT_ACCESS_LOGS: AccessLogEntry[] = [
+  {
+    id: "log-001",
+    user: "Marina Oliveira",
+    role: "SaaS Owner",
+    tenant: "Urbanbyte",
+    logged_at: "2025-05-03T14:12:05Z",
+    ip: "200.201.50.12",
+    location: "Recife - PE",
+    user_agent: "Chrome 123 • macOS",
+    status: "Sucesso"
+  },
+  {
+    id: "log-002",
+    user: "Carlos Medeiros",
+    role: "Secretário",
+    tenant: "Prefeitura de Zabelê",
+    logged_at: "2025-05-03T13:58:44Z",
+    ip: "189.12.44.201",
+    location: "Zabelê - PB",
+    user_agent: "Edge 122 • Windows",
+    status: "Sucesso"
+  },
+  {
+    id: "log-003",
+    user: "Processo Externo",
+    role: "Webhook",
+    tenant: "Prefeitura de Cabaceiras",
+    logged_at: "2025-05-03T13:05:12Z",
+    ip: "34.201.12.55",
+    location: "AWS us-east-1",
+    user_agent: "Urbanbyte Agent",
+    status: "Token expirado"
   }
 ];
 
@@ -351,6 +527,16 @@ export default function DashboardPage() {
   const [financeForm, setFinanceForm] = useState<FinanceFormState>(createDefaultFinanceForm);
   const [financeSummary, setFinanceSummary] = useState<FinanceSummary>(INITIAL_FINANCE_SUMMARY);
   const [financeFilter, setFinanceFilter] = useState<"all" | "pending" | "paid">("all");
+  const [retentionSummary, setRetentionSummary] = useState<RetentionSummary>(DEFAULT_RETENTION);
+  const [usageAnalytics, setUsageAnalytics] = useState<UsageAnalytics>(DEFAULT_USAGE_ANALYTICS);
+  const [complianceRecords, setComplianceRecords] = useState<ComplianceRecord[]>(DEFAULT_COMPLIANCE);
+  const [communicationCenter, setCommunicationCenter] = useState<CommunicationCenter>(
+    DEFAULT_COMMUNICATION_CENTER
+  );
+  const [communicationFilter, setCommunicationFilter] = useState<"queue" | "history">("queue");
+  const [cityInsights, setCityInsights] = useState<CityInsight[]>(DEFAULT_CITY_INSIGHTS);
+  const [selectedCityId, setSelectedCityId] = useState<string>(DEFAULT_CITY_INSIGHTS[0]?.id ?? "");
+  const [accessLogs, setAccessLogs] = useState<AccessLogEntry[]>(DEFAULT_ACCESS_LOGS);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -407,6 +593,20 @@ export default function DashboardPage() {
         setProjects(
           response?.projects && response.projects.length > 0 ? response.projects : DEFAULT_PROJECTS
         );
+        if (response?.retention) setRetentionSummary(response.retention);
+        if (response?.usage) setUsageAnalytics(response.usage);
+        if (response?.compliance) setComplianceRecords(response.compliance);
+        if (response?.communication) setCommunicationCenter(response.communication);
+        if (response?.city_insights && response.city_insights.length) {
+          setCityInsights(response.city_insights);
+          setSelectedCityId((current) => {
+            if (!current || !response.city_insights?.some((city) => city.id === current)) {
+              return response.city_insights[0].id;
+            }
+            return current;
+          });
+        }
+        if (response?.access_logs) setAccessLogs(response.access_logs);
       } catch (err) {
         // Mantém métricas padrão se a API não estiver disponível
       }
@@ -542,6 +742,11 @@ export default function DashboardPage() {
     return projectBoard.find((project) => project.id === activeProjectId) ?? projectBoard[0];
   }, [projectBoard, activeProjectId]);
 
+  const selectedCity = useMemo(() => {
+    if (!cityInsights.length) return null;
+    return cityInsights.find((city) => city.id === selectedCityId) ?? cityInsights[0];
+  }, [cityInsights, selectedCityId]);
+
   const navBadges = useMemo(() => {
     const supportTotal = supportSignals.open + supportSignals.urgent;
     return {
@@ -550,10 +755,12 @@ export default function DashboardPage() {
       automation: tenantSignals.dnsIssues + monitorSignals.critical,
       projects: projectSignals.attention,
       finance: financePending,
+      "urban-city": cityInsights.length,
+      "access-log": accessLogs.length,
       admins: 0,
       support: supportTotal
     } as Record<NavItemId, number>;
-  }, [financePending, monitorSignals, projectSignals, supportSignals, tenantSignals]);
+  }, [accessLogs.length, cityInsights.length, financePending, monitorSignals, projectSignals, supportSignals, tenantSignals]);
 
   const monitorStatsHandler = useCallback((stats: MonitorSignals) => {
     setMonitorSignals(stats);
@@ -890,6 +1097,23 @@ export default function DashboardPage() {
             />
           </svg>
         );
+      case "city":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M4.5 21.75h15" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6 21.75V5.25a.75.75 0 01.75-.75H10.5v17.25" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M13.5 21.75V9.75a.75.75 0 01.75-.75H18a.75.75 0 01.75.75v12" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M9 7.5h.01M9 11.25h.01M9 15h.01M9 18.75h.01M15.75 12h.01M15.75 15.75h.01M15.75 19.5h.01" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        );
+      case "access":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 3a9 9 0 100 18 9 9 0 000-18z" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 7.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 12v5.25" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        );
       case "team":
         return (
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -922,7 +1146,9 @@ export default function DashboardPage() {
       { label: "MRR", value: formatCurrency(derivedMetrics.mrr) },
       { label: "Previsão de despesas", value: formatCurrency(derivedMetrics.expenses_forecast) },
       { label: "Previsão de receita", value: formatCurrency(derivedMetrics.revenue_forecast) },
-      { label: "Funcionários Urbanbyte", value: formatNumber(derivedMetrics.staff_total) }
+      { label: "Funcionários Urbanbyte", value: formatNumber(derivedMetrics.staff_total) },
+      { label: "Online agora", value: formatNumber(derivedMetrics.users_online) },
+      { label: "Total de acessos", value: formatNumber(derivedMetrics.total_accesses) }
     ];
 
     const displayProjects = projects.length ? projects : DEFAULT_PROJECTS;
@@ -987,6 +1213,236 @@ export default function DashboardPage() {
                 </li>
               ))}
             </ul>
+          </article>
+        </section>
+
+        <section className="panel-grid two-columns">
+          <article className="panel-card retention-card">
+            <div className="panel-heading">
+              <div>
+                <h3>Retenção de prefeituras</h3>
+                <p>Cohorts mensais com churn, expansão e NPS médio.</p>
+              </div>
+              <span className="badge">Ativas: {retentionSummary.active_tenants}</span>
+            </div>
+            <div className="retention-kpis">
+              <div>
+                <span>Churn 90d</span>
+                <strong>{formatPercent(retentionSummary.churn_rate)}</strong>
+              </div>
+              <div>
+                <span>Expansão</span>
+                <strong>{formatPercent(retentionSummary.expansion_rate)}</strong>
+              </div>
+              <div>
+                <span>NPS global</span>
+                <strong>{retentionSummary.nps_global}</strong>
+              </div>
+            </div>
+            <table className="retention-table">
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Prefeituras</th>
+                  <th>Churn</th>
+                  <th>Expansão</th>
+                  <th>NPS</th>
+                  <th>Engajamento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {retentionSummary.cohorts.map((cohort) => (
+                  <tr key={cohort.month}>
+                    <td>{cohort.month}</td>
+                    <td>{cohort.tenants}</td>
+                    <td>{formatPercent(cohort.churn)}</td>
+                    <td>{formatPercent(cohort.expansion)}</td>
+                    <td>{cohort.nps}</td>
+                    <td>{formatPercent(cohort.engagement)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </article>
+
+          <article className="panel-card analytics-card">
+            <div className="panel-heading">
+              <div>
+                <h3>Analytics de uso</h3>
+                <p>Módulos mais acessados e funil de solicitações cidadãs.</p>
+              </div>
+            </div>
+            <div className="analytics-heatmap">
+              {usageAnalytics.heatmap.map((item) => (
+                <div key={item.module} className="heatmap-row">
+                  <strong>{item.module}</strong>
+                  <div className="heatmap-bars">
+                    {item.usage.map((value, index) => (
+                      <span
+                        key={`${item.module}-${index}`}
+                        style={{ '--bar-value': `${Math.min(value / Math.max(...item.usage, 1), 1)}` } as CSSProperties}
+                      >
+                        <em>{item.labels[index]}</em>
+                        <b>{value}</b>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="analytics-funnel">
+              <h4>Funil do cidadão</h4>
+              <ul>
+                {usageAnalytics.citizen_funnel.map((stage) => (
+                  <li key={stage.stage}>
+                    <div>
+                      <strong>{stage.stage}</strong>
+                      <span>{formatNumber(stage.value)} usuários</span>
+                    </div>
+                    <span className="funnel-conversion">{stage.conversion}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="analytics-ranking">
+              <h4>Secretarias destaque</h4>
+              <ol>
+                {usageAnalytics.top_secretariats.map((item) => (
+                  <li key={item.name}>
+                    <span>{item.name}</span>
+                    <strong>{formatNumber(item.interactions)}</strong>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </article>
+        </section>
+
+        <section className="panel-grid two-columns">
+          <article className="panel-card compliance-card">
+            <div className="panel-heading">
+              <div>
+                <h3>Automação de compliance</h3>
+                <p>Auditorias, SLA de chamados e relatórios para órgãos de controle.</p>
+              </div>
+              <span className="badge">{complianceRecords.length} tenant(s)</span>
+            </div>
+            <div className="compliance-list">
+              {complianceRecords.map((record) => (
+                <div key={record.tenant_id} className="compliance-item">
+                  <header>
+                    <strong>{record.tenant_name}</strong>
+                    <span>{record.reports.filter((report) => report.status !== "Entregue").length} pendente(s)</span>
+                  </header>
+                  <div className="compliance-audits">
+                    <h4>Auditorias recentes</h4>
+                    <ul>
+                      {record.audits.map((audit) => (
+                        <li key={audit.id} className={audit.sla_breach ? "is-alert" : ""}>
+                          <div>
+                            <strong>{audit.action}</strong>
+                            <span>{audit.actor}</span>
+                          </div>
+                          <span>{new Date(audit.performed_at).toLocaleString("pt-BR")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="compliance-reports">
+                    <h4>Relatórios</h4>
+                    <ul>
+                      {record.reports.map((report) => (
+                        <li key={report.id}>
+                          <div>
+                            <strong>{report.title}</strong>
+                            <span>{report.period}</span>
+                          </div>
+                          <span className={`status-pill ${report.status === "Entregue" ? "is-paid" : "is-pending"}`}>
+                            {report.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel-card communication-card">
+            <div className="panel-heading">
+              <div>
+                <h3>Hub de comunicação</h3>
+                <p>Anúncios internos, push notifications e histórico para auditoria.</p>
+              </div>
+              <div className="communication-tabs">
+                <button
+                  type="button"
+                  className={communicationFilter === "queue" ? "is-active" : ""}
+                  onClick={() => setCommunicationFilter("queue")}
+                >
+                  Aprovações pendentes ({communicationCenter.push_queue.length})
+                </button>
+                <button
+                  type="button"
+                  className={communicationFilter === "history" ? "is-active" : ""}
+                  onClick={() => setCommunicationFilter("history")}
+                >
+                  Histórico ({communicationCenter.history.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="communication-announcements">
+              <h4>Anúncios recentes</h4>
+              <ul>
+                {communicationCenter.announcements.map((item) => (
+                  <li key={item.id}>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <span>{item.audience}</span>
+                    </div>
+                    <span>{new Date(item.published_at).toLocaleDateString("pt-BR")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="communication-queue">
+              <h4>{communicationFilter === "queue" ? "Notificações para aprovar" : "Histórico de push"}</h4>
+              <ul>
+                {(communicationFilter === "queue"
+                  ? communicationCenter.push_queue
+                  : communicationCenter.history
+                ).map((request) => (
+                  <li key={request.id} className={`push-item status-${request.status}`}>
+                    <div>
+                      <strong>{request.subject}</strong>
+                      <span>
+                        {request.tenant_name} • {request.channel}
+                      </span>
+                      {request.summary && <p>{request.summary}</p>}
+                    </div>
+                    <div className="push-meta">
+                      <span>{new Date(request.created_at).toLocaleString("pt-BR")}</span>
+                      {request.scheduled_for && <span>Envio: {new Date(request.scheduled_for).toLocaleString("pt-BR")}</span>}
+                      <div className="push-actions">
+                        {communicationFilter === "queue" ? (
+                          <>
+                            <button type="button">Aprovar</button>
+                            <button type="button">Rejeitar</button>
+                          </>
+                        ) : (
+                          <span className={`status-pill ${request.status === "approved" ? "is-paid" : "is-pending"}`}>
+                            {request.status}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
         </section>
       </div>
@@ -1748,6 +2204,133 @@ export default function DashboardPage() {
     </div>
   );
 
+  const renderUrbanCity = () => (
+    <div className="dashboard-section">
+      <header className="dashboard-section__header">
+        <h2>Urban Cidade</h2>
+        <p>Visualize indicadores e relatórios específicos por município.</p>
+      </header>
+
+      <article className="panel-card city-card">
+        <div className="panel-heading">
+          <div>
+            <h3>Panorama municipal</h3>
+            <p>Selecione a cidade e exporte o relatório consolidado em PDF.</p>
+          </div>
+          <div className="city-actions">
+            <label>
+              Cidade
+              <select value={selectedCityId} onChange={(event) => setSelectedCityId(event.target.value)}>
+                {cityInsights.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="topbar-button">
+              Exportar PDF
+            </button>
+          </div>
+        </div>
+
+        {selectedCity ? (
+          <div className="city-overview">
+            <div className="city-kpis">
+              <div>
+                <span>População</span>
+                <strong>{formatNumber(selectedCity.population)}</strong>
+              </div>
+              <div>
+                <span>Usuários ativos</span>
+                <strong>{formatNumber(selectedCity.active_users)}</strong>
+              </div>
+              <div>
+                <span>Solicitações</span>
+                <strong>{formatNumber(selectedCity.requests_total)}</strong>
+              </div>
+              <div>
+                <span>Satisfação</span>
+                <strong>{formatPercent(selectedCity.satisfaction)}</strong>
+              </div>
+            </div>
+            <div className="city-highlights">
+              <h4>Destaques recentes</h4>
+              <ul>
+                {selectedCity.highlights.map((highlight, index) => (
+                  <li key={`${selectedCity.id}-highlight-${index}`}>{highlight}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="city-sync">
+              <span>Última sincronização:</span>
+              <strong>{new Date(selectedCity.last_sync).toLocaleString("pt-BR")}</strong>
+            </div>
+          </div>
+        ) : (
+          <p className="muted">Cadastre uma cidade para visualizar o panorama.</p>
+        )}
+      </article>
+    </div>
+  );
+
+  const renderAccessLog = () => (
+    <div className="dashboard-section">
+      <header className="dashboard-section__header">
+        <h2>Histórico de acessos</h2>
+        <p>Monitoramento completo de autenticações com IP, geolocalização e status.</p>
+      </header>
+
+      <article className="panel-card access-card">
+        <div className="panel-heading">
+          <div>
+            <h3>Eventos recentes</h3>
+            <p>Sincronizado em tempo real com o serviço de auditoria SaaS.</p>
+          </div>
+          <button type="button" className="topbar-button">
+            Exportar CSV
+          </button>
+        </div>
+
+        <div className="access-table-wrapper">
+          <table className="access-table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Papel</th>
+                <th>Prefeitura</th>
+                <th>Horário</th>
+                <th>IP</th>
+                <th>Localização</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accessLogs.map((entry) => (
+                <tr key={entry.id}>
+                  <td>
+                    <strong>{entry.user}</strong>
+                    <span>{entry.user_agent}</span>
+                  </td>
+                  <td>{entry.role}</td>
+                  <td>{entry.tenant ?? "—"}</td>
+                  <td>{new Date(entry.logged_at).toLocaleString("pt-BR")}</td>
+                  <td>{entry.ip}</td>
+                  <td>{entry.location}</td>
+                  <td>
+                    <span className={`status-pill ${entry.status === "Sucesso" ? "is-paid" : "is-pending"}`}>
+                      {entry.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  );
+
   const renderTeam = () => (
     <div className="dashboard-section">
       <header className="dashboard-section__header">
@@ -1881,6 +2464,8 @@ export default function DashboardPage() {
             {activeSection === "automation" && renderAutomation()}
             {activeSection === "projects" && renderProjects()}
             {activeSection === "finance" && renderFinance()}
+            {activeSection === "urban-city" && renderUrbanCity()}
+            {activeSection === "access-log" && renderAccessLog()}
             {activeSection === "tenants" && renderTenants()}
             {activeSection === "admins" && renderTeam()}
             {activeSection === "support" && renderSupport()}
