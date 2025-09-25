@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import lockup from "../assets/urbanbyte-lockup.svg";
 
 export default function UrbanbyteLogo() {
   return (
@@ -83,23 +84,7 @@ export default function UrbanbyteLogo() {
       </div>
 
       <div className="urbanbyte-logo__brand">
-        <svg className="urbanbyte-logo__icon" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="grad-teal-logo" x1="24" y1="14" x2="76" y2="66" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#2CE4CB" />
-              <stop offset="1" stopColor="#14B8FF" />
-            </linearGradient>
-          </defs>
-          <rect x="0" y="0" width="48" height="48" rx="12" fill="#0B1B45" />
-          <rect x="24" y="14" width="52" height="52" rx="16" fill="url(#grad-teal-logo)" />
-          <rect x="56" y="0" width="48" height="48" rx="12" fill="#5BE38F" />
-          <rect x="14" y="56" width="52" height="52" rx="16" fill="#3CD9FF" />
-        </svg>
-
-        <div className="urbanbyte-logo__wordmark">
-          <span className="urbanbyte-logo__title">URBAN</span>
-          <span className="urbanbyte-logo__subtitle">BYTE</span>
-        </div>
+        <img src={lockup} alt="Urban Byte" className="urbanbyte-logo__mark" />
       </div>
     </div>
   );
