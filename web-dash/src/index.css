@@ -230,21 +230,32 @@ body {
 }
 
 .urbanbyte-logo__neural {
-  width: 260px;
+  width: 320px;
   height: auto;
+  opacity: 0.5;
 }
 
 .neural-web path {
   stroke-dasharray: 320;
   stroke-dashoffset: 320;
-  animation: neural-draw 2.8s ease forwards;
+  animation: neural-draw 6s ease-in-out infinite;
+}
+
+.neural-web__layer:nth-of-type(1) {
+  animation-delay: 0s;
+}
+.neural-web__layer:nth-of-type(2) {
+  animation-delay: 1s;
+}
+.neural-web__layer:nth-of-type(3) {
+  animation-delay: 2s;
 }
 
 .neural-web circle {
   opacity: 0;
   transform: scale(0.4);
   transform-origin: center;
-  animation: neural-pulse 1.8s ease forwards;
+  animation: neural-pulse 3.5s ease-in-out infinite;
 }
 
 .neural-web circle:nth-of-type(1) { animation-delay: 0.3s; }
@@ -275,8 +286,21 @@ body {
 }
 
 @keyframes neural-draw {
-  to {
+  0% {
+    stroke-dashoffset: 320;
+    opacity: 0.2;
+  }
+  30% {
     stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    opacity: 0.45;
+  }
+  100% {
+    stroke-dashoffset: 320;
+    opacity: 0.2;
   }
 }
 
@@ -285,13 +309,17 @@ body {
     opacity: 0;
     transform: scale(0.35);
   }
-  60% {
-    opacity: 1;
-    transform: scale(1.2);
+  40% {
+    opacity: 0.9;
+    transform: scale(1.25);
+  }
+  70% {
+    opacity: 0.45;
+    transform: scale(1);
   }
   100% {
-    opacity: 1;
-    transform: scale(1);
+    opacity: 0;
+    transform: scale(0.8);
   }
 }
 

@@ -3,31 +3,40 @@ export default function UrbanbyteLogo() {
     <div className="urbanbyte-logo" aria-hidden="true">
       <svg
         className="urbanbyte-logo__neural"
-        width="260"
-        height="170"
-        viewBox="0 0 260 170"
+        width="320"
+        height="190"
+        viewBox="0 0 320 190"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <g className="neural-web">
           <path
-            d="M25 105L60 70L95 108L130 62L168 102L210 60L240 98M32 60L60 70L90 42L130 62L160 34L190 56L218 30"
+            className="neural-web__layer"
+            d="M22 130L68 76L108 126L148 74L196 120L244 70L296 118"
             stroke="url(#neuralLine)"
             strokeWidth="0.8"
             strokeLinecap="round"
           />
           <path
-            d="M40 142L72 92L114 144L152 88L190 130L222 90"
+            className="neural-web__layer"
+            d="M40 54L72 82L110 40L156 68L204 36L248 66L288 38"
             stroke="url(#neuralLine)"
             strokeWidth="0.8"
             strokeLinecap="round"
           />
-          <circle cx="60" cy="70" r="3" fill="#29F0D8" />
-          <circle cx="90" cy="42" r="3" fill="#29F0D8" />
-          <circle cx="130" cy="62" r="3" fill="#29F0D8" />
-          <circle cx="168" cy="102" r="3" fill="#29F0D8" />
-          <circle cx="190" cy="130" r="3" fill="#29F0D8" />
-          <circle cx="218" cy="30" r="3" fill="#29F0D8" />
+          <path
+            className="neural-web__layer"
+            d="M48 166L92 102L144 166L188 106L232 154L272 102"
+            stroke="url(#neuralLine)"
+            strokeWidth="0.8"
+            strokeLinecap="round"
+          />
+          <circle cx="68" cy="76" r="3" fill="#29F0D8" />
+          <circle cx="110" cy="40" r="3" fill="#29F0D8" />
+          <circle cx="156" cy="68" r="3" fill="#29F0D8" />
+          <circle cx="196" cy="120" r="3" fill="#29F0D8" />
+          <circle cx="232" cy="154" r="3" fill="#29F0D8" />
+          <circle cx="288" cy="38" r="3" fill="#29F0D8" />
         </g>
 
         <g transform="translate(70,32)">
