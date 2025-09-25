@@ -1,13 +1,14 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import UrbanbyteLogo from "../components/UrbanbyteLogo";
 import { useAuth } from "../state/auth";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@urbanbyte.com.br");
-  const [password, setPassword] = useState("Urbanbyte#2025");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,27 +28,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="app-shell">
-      <header className="header">
-        <strong>Urbanbyte • SaaS Control Center</strong>
-      </header>
-      <main className="container" style={{ maxWidth: "420px" }}>
-        <div className="card">
-          <h2>Acessar painel</h2>
-          <p style={{ marginTop: "0.25rem", color: "#64748b" }}>
-            Gere novas prefeituras, acompanhe saúde da plataforma e configure experiências
-            do cidadão.
+    <div className="login-page">
+      <section className="login-hero">
+        <div className="login-hero__content">
+          <UrbanbyteLogo />
+          <h1>Urbanbyte SaaS Control Center</h1>
+          <p>
+            Monitore saúde operacional, provisionamento de domínios e onboarding de novas
+            prefeituras em um cockpit projetado para equipes de tecnologia cívica.
           </p>
+        </div>
+        <div className="login-hero__glow" />
+      </section>
 
-          <form className="form-grid" style={{ marginTop: "1.5rem" }} onSubmit={handleSubmit}>
+      <section className="login-panel">
+        <div className="login-card">
+          <header>
+            <h2>Entrar na plataforma</h2>
+            <span className="muted">Autentique-se com o seu e-mail corporativo Urbanbyte.</span>
+          </header>
+
+          <form className="login-form" onSubmit={handleSubmit}>
             <label>
               E-mail corporativo
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 autoComplete="username"
-                placeholder="admin@urbanbyte.com.br"
+                placeholder="voce@urbanbyte.com.br"
                 required
               />
             </label>
@@ -57,9 +66,9 @@ export default function LoginPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
-                placeholder="••••••"
+                placeholder="••••••••"
                 required
               />
             </label>
@@ -67,11 +76,16 @@ export default function LoginPage() {
             {error && <span className="inline-error">{error}</span>}
 
             <button className="btn" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Entrando..." : "Entrar"}
+              {isSubmitting ? "Verificando..." : "Acessar painel"}
             </button>
           </form>
         </div>
-      </main>
+
+        <footer className="login-footer">
+          <span>© {new Date().getFullYear()} Urbanbyte. Todos os direitos reservados.</span>
+          <span className="login-footer__tag">Tecnologia para governos digitais.</span>
+        </footer>
+      </section>
     </div>
   );
 }
