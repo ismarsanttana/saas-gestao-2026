@@ -16,7 +16,12 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgente" }
 ];
 
-export default function SupportTickets({ tenants }: { tenants: Tenant[] }) {
+type SupportTicketsProps = {
+  tenants: Tenant[];
+  onStatsChange?: (stats: { open: number; urgent: number }) => void;
+};
+
+export default function SupportTickets({ tenants, onStatsChange }: SupportTicketsProps) {
   const { authorizedFetch } = useAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -186,6 +191,15 @@ export default function SupportTickets({ tenants }: { tenants: Tenant[] }) {
     if (!selectedTicket) return null;
     return tenants.find((tenant) => tenant.id === selectedTicket.tenant_id) ?? null;
   }, [selectedTicket, tenants]);
+
+  useEffect(() => {
+    if (!onStatsChange) return;
+    const activeTickets = tickets.filter((ticket) => ticket.status === "open" || ticket.status === "in_progress").length;
+    const urgentTickets = tickets.filter(
+      (ticket) => (ticket.priority === "urgent" || ticket.priority === "high") && (ticket.status === "open" || ticket.status === "in_progress")
+    ).length;
+    onStatsChange({ open: activeTickets, urgent: urgentTickets });
+  }, [tickets, onStatsChange]);
 
   return (
     <div className="support-center">

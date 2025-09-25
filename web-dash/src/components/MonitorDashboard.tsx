@@ -7,9 +7,10 @@ type HealthBucket = "ok" | "warning" | "critical";
 
 type MonitorDashboardProps = {
   onRefresh?: () => void;
+  onStatsChange?: (stats: { critical: number; warning: number; totalAlerts: number }) => void;
 };
 
-export default function MonitorDashboard({ onRefresh }: MonitorDashboardProps) {
+export default function MonitorDashboard({ onRefresh, onStatsChange }: MonitorDashboardProps) {
   const { authorizedFetch } = useAuth();
   const [summaries, setSummaries] = useState<MonitorSummary[]>([]);
   const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
@@ -73,6 +74,15 @@ export default function MonitorDashboard({ onRefresh }: MonitorDashboardProps) {
       warning
     };
   }, [summaries]);
+
+  useEffect(() => {
+    if (!onStatsChange) return;
+    onStatsChange({
+      critical: aggregates.critical,
+      warning: aggregates.warning,
+      totalAlerts: alerts.length
+    });
+  }, [aggregates.critical, aggregates.warning, alerts.length, onStatsChange]);
 
   return (
     <section>

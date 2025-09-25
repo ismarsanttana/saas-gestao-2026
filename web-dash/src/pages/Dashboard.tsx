@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import TenantForm from "../components/TenantForm";
 import TenantTable from "../components/TenantTable";
@@ -10,6 +10,12 @@ import MonitorDashboard from "../components/MonitorDashboard";
 import { useAuth } from "../state/auth";
 import { Tenant } from "../types";
 
+const getInitialTheme = (): "light" | "dark" => {
+  if (typeof window === "undefined") return "dark";
+  const stored = window.localStorage.getItem("dashboard-theme");
+  return stored === "light" ? "light" : "dark";
+};
+
 export default function DashboardPage() {
   const { user, logout, authorizedFetch } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -17,6 +23,64 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState("overview");
+  const [theme, setTheme] = useState<"light" | "dark">(() => getInitialTheme());
+  const [monitorSignals, setMonitorSignals] = useState({ critical: 0, warning: 0, totalAlerts: 0 });
+  const [supportSignals, setSupportSignals] = useState({ open: 0, urgent: 0 });
+  const [tenantSignals, setTenantSignals] = useState({ pending: 0, dnsIssues: 0 });
+
+  const overviewRef = useRef<HTMLElement | null>(null);
+  const automationRef = useRef<HTMLElement | null>(null);
+  const tenantsRef = useRef<HTMLElement | null>(null);
+  const adminsRef = useRef<HTMLElement | null>(null);
+  const supportRef = useRef<HTMLElement | null>(null);
+
+  const sections = useMemo(
+    () => [
+      { id: "overview", label: "Visão geral", ref: overviewRef },
+      { id: "automation", label: "Automação & DNS", ref: automationRef },
+      { id: "tenants", label: "Prefeituras", ref: tenantsRef },
+      { id: "admins", label: "Equipe SaaS", ref: adminsRef },
+      { id: "support", label: "Suporte", ref: supportRef }
+    ],
+    []
+  );
+
+  const scrollToSection = (sectionId: string) => {
+    const target = sections.find((item) => item.id === sectionId)?.ref.current;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSection(sectionId);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("dashboard-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target) {
+          const match = sections.find((item) => item.ref.current === visible.target);
+          if (match) {
+            setActiveSection(match.id);
+          }
+        }
+      },
+      { threshold: 0.35 }
+    );
+
+    sections.forEach((section) => {
+      const node = section.ref.current;
+      if (node) observer.observe(node);
+    });
+
+    return () => observer.disconnect();
+  }, [sections]);
 
   useEffect(() => {
     if (!user) {
@@ -122,156 +186,177 @@ export default function DashboardPage() {
     ];
   }, [tenants]);
 
+  useEffect(() => {
+    const pending = tenants.filter((tenant) => tenant.status !== "active").length;
+    const dnsIssues = tenants.filter((tenant) => {
+      const status = (tenant.dns_status ?? "").toLowerCase();
+      return status && status !== "ok";
+    }).length;
+    setTenantSignals({ pending, dnsIssues });
+  }, [tenants]);
+
+  const handleMonitorStats = useCallback((stats: { critical: number; warning: number; totalAlerts: number }) => {
+    setMonitorSignals(stats);
+  }, []);
+
+  const handleSupportStats = useCallback((stats: { open: number; urgent: number }) => {
+    setSupportSignals(stats);
+  }, []);
+
+  const navBadges = useMemo(() => {
+    const automationIssues = tenantSignals.dnsIssues + monitorSignals.critical;
+    const overviewSignals = monitorSignals.totalAlerts;
+    const supportTotal = supportSignals.open + supportSignals.urgent;
+    return {
+      overview: overviewSignals,
+      automation: automationIssues,
+      tenants: tenantSignals.pending,
+      admins: 0,
+      support: supportTotal
+    } as Record<string, number>;
+  }, [monitorSignals, supportSignals, tenantSignals]);
+
   return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-brand">
+    <div className={`dashboard theme-${theme}`}>
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
           <img src="/assets/urbanbyte-lockup.png" alt="Urbanbyte" />
+          <div className="dashboard-brand__copy">
+            <span>Startup Control Center</span>
+            <h1>Governança SaaS Urbanbyte</h1>
+          </div>
         </div>
-        <nav className="sidebar-nav">
-          <span className="sidebar-label">Operação</span>
-          <button
-            type="button"
-            className={`sidebar-link ${activeSection === "overview" ? "is-active" : ""}`}
-            onClick={() => setActiveSection("overview")}
-          >
-            Visão geral
+        <div className="dashboard-header__actions">
+          <button type="button" className="theme-toggle" onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}>
+            {theme === "dark" ? "Modo claro" : "Modo escuro"}
           </button>
-          <button
-            type="button"
-            className={`sidebar-link ${activeSection === "tenants" ? "is-active" : ""}`}
-            onClick={() => setActiveSection("tenants")}
-          >
-            Prefeituras
-          </button>
-          <button
-            type="button"
-            className={`sidebar-link ${activeSection === "automation" ? "is-active" : ""}`}
-            onClick={() => setActiveSection("automation")}
-          >
-            Automação & DNS
-          </button>
-
-          <span className="sidebar-label">Administração</span>
-          <button
-            type="button"
-            className={`sidebar-link ${activeSection === "admins" ? "is-active" : ""}`}
-            onClick={() => setActiveSection("admins")}
-          >
-            Equipe SaaS
-          </button>
-          <button
-            type="button"
-            className={`sidebar-link ${activeSection === "support" ? "is-active" : ""}`}
-            onClick={() => setActiveSection("support")}
-          >
-            Suporte & Tickets
-          </button>
-        </nav>
-
-        {user && (
-          <div className="sidebar-user">
-            <span className="sidebar-user__role">{user.role}</span>
-            <strong>{user.name}</strong>
-            <button type="button" onClick={logout}>
-              Encerrar sessão
-            </button>
-          </div>
-        )}
-      </aside>
-
-      <div className="dashboard-main">
-        <header className="dashboard-topbar">
-          <div>
-            <p className="dashboard-topbar__kicker">Urbanbyte Startup Control Center</p>
-            <h1>Visão consolidada do SaaS municipal</h1>
-          </div>
-          <div className="dashboard-actions">
-            <button type="button" className="btn-ghost" onClick={() => setActiveSection("overview")}>
-              Atualizar dados
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setActiveSection("tenants")}>
-              Nova prefeitura
-            </button>
-          </div>
-        </header>
-
-        <main className="dashboard-content">
-          {(error || message) && (
-            <div className="dashboard-alert">
-              {error && <span className="alert-error">{error}</span>}
-              {message && <span className="alert-success">{message}</span>}
+          {user && (
+            <div className="dashboard-user">
+              <span>{user.name}</span>
+              <small>{user.role}</small>
             </div>
           )}
+          <button type="button" className="logout-btn" onClick={logout}>
+            Sair
+          </button>
+        </div>
+      </header>
 
-          <section className="dashboard-metrics">
+      <nav className="dashboard-nav">
+        {sections.map((section) => {
+          const badge = navBadges[section.id] ?? 0;
+          return (
+            <button
+              key={section.id}
+              type="button"
+              className={`dashboard-nav__link ${activeSection === section.id ? "is-active" : ""}`}
+              onClick={() => scrollToSection(section.id)}
+            >
+              {section.label}
+              {badge > 0 && <span className="nav-badge">{badge}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <main className="dashboard-body">
+        {(error || message) && (
+          <div className="dashboard-banner">
+            {error && <span className="dashboard-banner__error">{error}</span>}
+            {message && <span className="dashboard-banner__success">{message}</span>}
+          </div>
+        )}
+
+        <section ref={overviewRef} id="overview" className="dashboard-section">
+          <header className="dashboard-section__header">
+            <h2>Visão geral</h2>
+            <p>Indicadores operacionais e estado consolidado do SaaS municipal.</p>
+          </header>
+          <div className="metric-row">
             {metrics.map((metric) => (
-              <article key={metric.id} className="metric-card">
-                <span className="metric-label">{metric.label}</span>
-                <strong className="metric-value">{metric.value}</strong>
-                <span className="metric-hint">{metric.hint}</span>
+              <article key={metric.id} className="metric-tile">
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.hint}</small>
               </article>
             ))}
-          </section>
+          </div>
+          <div className="panel-grid">
+            <article className="panel-card">
+              <MonitorDashboard onStatsChange={handleMonitorStats} />
+            </article>
+          </div>
+        </section>
 
-          <section className="surface surface-grid">
-            <article className="surface-card large">
+        <section ref={automationRef} id="automation" className="dashboard-section">
+          <header className="dashboard-section__header">
+            <h2>Automação & DNS</h2>
+            <p>Gerencie provisionamento Cloudflare e monitoramento de domínios.</p>
+          </header>
+          <div className="panel-grid">
+            <article className="panel-card">
               <CloudflareSettings />
             </article>
-            <article className="surface-card">
-              <MonitorDashboard />
-            </article>
-          </section>
+          </div>
+        </section>
 
-          <section className="surface">
-            <article className="surface-card">
-              <div className="section-heading">
+        <section ref={tenantsRef} id="tenants" className="dashboard-section">
+          <header className="dashboard-section__header">
+            <h2>Prefeituras</h2>
+            <p>Fluxos de onboarding, importação e acompanhamento de status.</p>
+          </header>
+          <div className="panel-grid two-columns">
+            <article className="panel-card">
+              <div className="panel-heading">
                 <div>
-                  <h2>Onboarding de nova prefeitura</h2>
-                  <p>Configure branding, equipe e ativos para liberar o ambiente municipal.</p>
+                  <h3>Onboarding de nova prefeitura</h3>
+                  <p>Personalize branding, contatos e equipe base.</p>
                 </div>
-                <span className="tag">Workflow assistido</span>
+                <span className="badge">Workflow assistido</span>
               </div>
               <TenantForm onCreated={handleCreated} />
             </article>
-            <article className="surface-card narrow">
+            <article className="panel-card compact">
               <TenantImport onImported={handleImport} />
             </article>
-          </section>
-
-          <section className="surface">
-            <article className="surface-card full">
-              <div className="section-heading">
-                <div>
-                  <h2>Prefeituras cadastradas</h2>
-                  <p>Gerencie provisionamento, checagens DNS e status operacionais.</p>
-                </div>
-                <div className="section-actions">
-                  <button type="button" className="btn-ghost" onClick={() => setActiveSection("automation")}>
-                    Ver automações
-                  </button>
-                </div>
+          </div>
+          <article className="panel-card">
+            <div className="panel-heading">
+              <div>
+                <h3>Prefeituras cadastradas</h3>
+                <p>Controle status de DNS, ativação e equipes municipais.</p>
               </div>
-              {isLoading ? (
-                <p>Carregando…</p>
-              ) : error ? (
-                <p className="inline-error">{error}</p>
-              ) : (
-                <TenantTable tenants={tenants} onProvision={handleProvision} onCheckDNS={handleCheckDNS} />
-              )}
-            </article>
-          </section>
+            </div>
+            {isLoading ? (
+              <p>Carregando…</p>
+            ) : error ? (
+              <p className="inline-error">{error}</p>
+            ) : (
+              <TenantTable tenants={tenants} onProvision={handleProvision} onCheckDNS={handleCheckDNS} />
+            )}
+          </article>
+        </section>
 
-          <section className="surface surface-split">
-            <article className="surface-card">
-              <SaasAdminManager />
-            </article>
-            <article className="surface-card">
-              <SupportTickets tenants={tenants} />
-            </article>
-          </section>
-        </main>
-      </div>
+        <section ref={adminsRef} id="admins" className="dashboard-section">
+          <header className="dashboard-section__header">
+            <h2>Equipe SaaS</h2>
+            <p>Convide, gerencie papéis e mantenha governança da operação.</p>
+          </header>
+          <article className="panel-card">
+            <SaasAdminManager />
+          </article>
+        </section>
+
+        <section ref={supportRef} id="support" className="dashboard-section">
+          <header className="dashboard-section__header">
+            <h2>Suporte & Tickets</h2>
+            <p>Acompanhe interações com prefeituras e responda chamados críticos.</p>
+          </header>
+          <article className="panel-card">
+            <SupportTickets tenants={tenants} onStatsChange={handleSupportStats} />
+          </article>
+        </section>
+      </main>
     </div>
   );
 }
