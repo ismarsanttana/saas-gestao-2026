@@ -3,40 +3,63 @@ export default function UrbanbyteLogo() {
     <div className="urbanbyte-logo" aria-hidden="true">
       <svg
         className="urbanbyte-logo__neural"
-        width="320"
-        height="190"
-        viewBox="0 0 320 190"
+        width="360"
+        height="210"
+        viewBox="0 0 360 210"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <g className="neural-web">
-          <path
-            className="neural-web__layer"
-            d="M22 130L68 76L108 126L148 74L196 120L244 70L296 118"
-            stroke="url(#neuralLine)"
-            strokeWidth="0.8"
-            strokeLinecap="round"
-          />
-          <path
-            className="neural-web__layer"
-            d="M40 54L72 82L110 40L156 68L204 36L248 66L288 38"
-            stroke="url(#neuralLine)"
-            strokeWidth="0.8"
-            strokeLinecap="round"
-          />
-          <path
-            className="neural-web__layer"
-            d="M48 166L92 102L144 166L188 106L232 154L272 102"
-            stroke="url(#neuralLine)"
-            strokeWidth="0.8"
-            strokeLinecap="round"
-          />
-          <circle cx="68" cy="76" r="3" fill="#29F0D8" />
-          <circle cx="110" cy="40" r="3" fill="#29F0D8" />
-          <circle cx="156" cy="68" r="3" fill="#29F0D8" />
-          <circle cx="196" cy="120" r="3" fill="#29F0D8" />
-          <circle cx="232" cy="154" r="3" fill="#29F0D8" />
-          <circle cx="288" cy="38" r="3" fill="#29F0D8" />
+          {[
+            "M22 150L66 96L112 150L156 94L204 148L250 96L302 146",
+            "M44 60L66 96L110 48L156 86L204 44L248 82L298 52",
+            "M60 184L96 124L148 184L196 122L244 176L288 124",
+            "M22 150L44 60L90 96L22 150",
+            "M302 146L326 82L248 82L302 146",
+            "M96 124L66 96L110 48L156 94L196 122L204 148",
+            "M248 96L196 122L244 176",
+            "M110 48L156 32L204 44L254 30",
+            "M44 60L60 24L110 48",
+            "M288 124L326 82L352 118"
+          ].map((d, index) => (
+            <path
+              key={index}
+              className="neural-web__layer"
+              d={d}
+              stroke="url(#neuralLine)"
+              strokeWidth="0.85"
+              strokeLinecap="round"
+            />
+          ))}
+
+          {[
+            { cx: 22, cy: 150 },
+            { cx: 44, cy: 60 },
+            { cx: 60, cy: 184 },
+            { cx: 60, cy: 24 },
+            { cx: 66, cy: 96 },
+            { cx: 90, cy: 96 },
+            { cx: 96, cy: 124 },
+            { cx: 110, cy: 48 },
+            { cx: 112, cy: 150 },
+            { cx: 148, cy: 184 },
+            { cx: 156, cy: 32 },
+            { cx: 156, cy: 94 },
+            { cx: 156, cy: 186 },
+            { cx: 196, cy: 122 },
+            { cx: 204, cy: 44 },
+            { cx: 204, cy: 148 },
+            { cx: 244, cy: 176 },
+            { cx: 248, cy: 82 },
+            { cx: 250, cy: 96 },
+            { cx: 288, cy: 124 },
+            { cx: 298, cy: 52 },
+            { cx: 302, cy: 146 },
+            { cx: 326, cy: 82 },
+            { cx: 352, cy: 118 }
+          ].map((node, index) => (
+            <circle key={index} cx={node.cx} cy={node.cy} r={3} fill="#29F0D8" />
+          ))}
         </g>
 
         <g transform="translate(70,32)">
