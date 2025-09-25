@@ -37,7 +37,7 @@ export default function LoginPage() {
               <h1>Urbanbyte Startup Control Center</h1>
               <span className="login-hero__subtitle">Tecnologia para cidades inteligentes e governos digitais.</span>
             </div>
-            <p>Monitore saúde operacional, provisionamento de domínios e onboarding de novas prefeituras em um cockpit projetado para equipes de tecnologia cívica.</p>
+            <p>urbanbyte.com.br</p>
           </div>
         </div>
         <div className="login-hero__glow" />
