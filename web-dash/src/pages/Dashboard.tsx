@@ -1387,7 +1387,7 @@ export default function DashboardPage() {
       <div className="dashboard-section">
         <section className="dashboard-hero">
           <div className="hero-copy">
-            <h2>Bem-vindo ao hub operacional do seu SaaS municipal</h2>
+            <h2>Bem-vindo ao gerenciador operacional da UrbanByte</h2>
             <p>
               Gerencie DNS, onboarding, equipe e health-checks de todos os tenants com um visual moderno e
               ações rápidas.
