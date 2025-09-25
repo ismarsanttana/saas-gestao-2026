@@ -31,8 +31,8 @@ export default function LoginPage() {
     <div className="login-page">
       <section className="login-hero">
         <div className="login-hero__content">
-          <UrbanbyteLogo />
           <div className="login-hero__copy">
+            <UrbanbyteLogo />
             <div className="login-hero__heading">
               <h1>Urbanbyte Startup Control Center</h1>
               <span className="login-hero__subtitle">Tecnologia para cidades inteligentes e governos digitais.</span>

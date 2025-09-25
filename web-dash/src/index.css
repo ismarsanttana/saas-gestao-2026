@@ -69,9 +69,8 @@ body {
   width: 100%;
   min-height: clamp(420px, 82vh, 720px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
-  gap: 0;
 }
 
 .login-hero__copy {
@@ -79,9 +78,10 @@ body {
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
   max-width: 420px;
   margin-left: auto;
+  align-items: flex-start;
 }
 
 .login-hero__content h1 {
@@ -240,10 +240,9 @@ body {
 
 .urbanbyte-logo {
   position: absolute;
-  top: 8%;
-  bottom: 12%;
+  top: 6%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   width: clamp(420px, 80vw, 920px);
   pointer-events: none;
   color: #ffffff;
@@ -252,7 +251,7 @@ body {
 
 .urbanbyte-logo__mesh {
   position: absolute;
-  inset: 0;
+  inset: -10% 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,7 +282,8 @@ body {
 .urbanbyte-logo__brand {
   position: absolute;
   top: clamp(12%, 18vh, 32%);
-  left: clamp(6%, 14vw, 20%);
+  left: 50%;
+  transform: translateX(-50%);
   pointer-events: none;
   z-index: 2;
 }
@@ -353,14 +353,12 @@ body {
   }
 
   .urbanbyte-logo {
-    top: 10%;
-    bottom: 14%;
+    top: 8%;
     width: clamp(360px, 95vw, 860px);
   }
 
   .urbanbyte-logo__brand {
-    top: clamp(14%, 16vh, 28%);
-    left: clamp(8%, 10vw, 18%);
+    top: clamp(18%, 20vh, 32%);
   }
 
   .login-panel {
