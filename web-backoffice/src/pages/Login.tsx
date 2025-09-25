@@ -119,7 +119,14 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950">
+    <div
+      className="flex min-h-screen items-center justify-center"
+      style={{
+        backgroundColor: '#2A7B9B',
+        backgroundImage:
+          'linear-gradient(90deg, rgba(42, 123, 155, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%)'
+      }}
+    >
       <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/60 p-8 shadow-lg">
         <h1 className="text-2xl font-semibold text-white">Backoffice Municipal</h1>
         <p className="mt-2 text-sm text-slate-400">
