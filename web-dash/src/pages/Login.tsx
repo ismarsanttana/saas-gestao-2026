@@ -32,11 +32,11 @@ export default function LoginPage() {
       <section className="login-hero">
         <div className="login-hero__content">
           <UrbanbyteLogo />
-          <h1>Urbanbyte SaaS Control Center</h1>
-          <p>
-            Monitore saúde operacional, provisionamento de domínios e onboarding de novas
-            prefeituras em um cockpit projetado para equipes de tecnologia cívica.
-          </p>
+          <div className="login-hero__heading">
+            <h1>Urbanbyte SaaS Control Center</h1>
+            <span className="login-hero__subtitle">Tecnologia para governos digitais.</span>
+          </div>
+          <p>Monitore saúde operacional, provisionamento de domínios e onboarding de novas prefeituras em um cockpit projetado para equipes de tecnologia cívica.</p>
         </div>
         <div className="login-hero__glow" />
       </section>
@@ -77,6 +77,10 @@ export default function LoginPage() {
 
             <button className="btn" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Verificando..." : "Acessar painel"}
+            </button>
+
+            <button className="btn btn-biometrics" type="button">
+              Entrar com biometria
             </button>
           </form>
         </div>

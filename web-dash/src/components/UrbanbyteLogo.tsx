@@ -21,7 +21,7 @@ export default function UrbanbyteLogo() {
       </svg>
       <div className="urbanbyte-logo__wordmark">
         <span className="urbanbyte-logo__title">URBAN</span>
-        <span className="urbanbyte-logo__subtitle">BYE</span>
+        <span className="urbanbyte-logo__subtitle">BYTE</span>
       </div>
     </div>
   );
