@@ -171,3 +171,58 @@ export type DashboardOverviewResponse = {
   metrics?: DashboardOverviewMetrics;
   projects?: DashboardProject[];
 };
+
+export type ProjectTask = {
+  id: string;
+  title: string;
+  owner: string;
+  status: "pending" | "in_progress" | "blocked" | "done";
+  due_date?: string;
+  notes?: string;
+  created_at: string;
+  completed_at?: string | null;
+};
+
+export type ProjectRecord = {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  progress: number;
+  lead?: string;
+  squad?: string[];
+  started_at?: string;
+  target_date?: string;
+  tasks: ProjectTask[];
+  updated_at: string;
+};
+
+export type FinanceAttachment = {
+  id: string;
+  name: string;
+  uploaded_at: string;
+};
+
+export type FinanceEntry = {
+  id: string;
+  entry_type: "expense" | "revenue" | "investment" | "payroll" | "subscription";
+  category: string;
+  description: string;
+  amount: number;
+  due_date?: string;
+  paid: boolean;
+  paid_at?: string | null;
+  method?: string;
+  cost_center?: string;
+  responsible?: string;
+  notes?: string;
+  attachments: FinanceAttachment[];
+  created_at: string;
+};
+
+export type FinanceSummary = {
+  cash_in: number;
+  cash_out: number;
+  net: number;
+  pending: number;
+};
