@@ -229,6 +229,31 @@ body {
   filter: drop-shadow(0 15px 25px rgba(8, 139, 255, 0.35));
 }
 
+.urbanbyte-logo__neural {
+  width: 260px;
+  height: auto;
+}
+
+.neural-web path {
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  animation: neural-draw 2.8s ease forwards;
+}
+
+.neural-web circle {
+  opacity: 0;
+  transform: scale(0.4);
+  transform-origin: center;
+  animation: neural-pulse 1.8s ease forwards;
+}
+
+.neural-web circle:nth-of-type(1) { animation-delay: 0.3s; }
+.neural-web circle:nth-of-type(2) { animation-delay: 0.55s; }
+.neural-web circle:nth-of-type(3) { animation-delay: 0.8s; }
+.neural-web circle:nth-of-type(4) { animation-delay: 1.05s; }
+.neural-web circle:nth-of-type(5) { animation-delay: 1.3s; }
+.neural-web circle:nth-of-type(6) { animation-delay: 1.55s; }
+
 .urbanbyte-logo__wordmark {
   display: flex;
   flex-direction: column;
@@ -247,6 +272,27 @@ body {
   font-weight: 600;
   letter-spacing: 0.32em;
   color: #40f7d1;
+}
+
+@keyframes neural-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes neural-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 1080px) {
