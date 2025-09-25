@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import lockup from "../assets/urbanbyte-lockup.svg";
 
 export default function UrbanbyteLogo() {
   return (
@@ -84,7 +83,7 @@ export default function UrbanbyteLogo() {
       </div>
 
       <div className="urbanbyte-logo__brand">
-        <img src={lockup} alt="Urban Byte" className="urbanbyte-logo__mark" />
+        <img src="/assets/urbanbyte-lockup.png" alt="Urban Byte" className="urbanbyte-logo__mark" />
       </div>
     </div>
   );
