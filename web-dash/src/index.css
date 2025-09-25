@@ -239,19 +239,17 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: clamp(420px, 80vw, 920px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
   color: #ffffff;
   z-index: 1;
 }
 
-.urbanbyte-logo__canvas {
-  width: 100%;
+.urbanbyte-logo__mesh {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   filter: drop-shadow(0 20px 40px rgba(8, 139, 255, 0.35));
 }
 
@@ -276,25 +274,40 @@ body {
   animation-delay: calc(var(--node-index) * 0.55s);
 }
 
-.urbanbyte-logo__wordmark {
+.urbanbyte-logo__brand {
   position: absolute;
   top: clamp(12%, 18vh, 32%);
   left: clamp(6%, 14vw, 20%);
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
+  gap: 0.75rem;
+  align-items: flex-start;
+  max-width: 320px;
+  pointer-events: none;
   z-index: 2;
 }
 
+.urbanbyte-logo__icon {
+  width: 120px;
+  height: auto;
+  filter: drop-shadow(0 15px 25px rgba(8, 139, 255, 0.35));
+}
+
+.urbanbyte-logo__wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
 .urbanbyte-logo__title {
-  font-size: clamp(1.4rem, 2vw, 2rem);
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
 .urbanbyte-logo__subtitle {
-  font-size: clamp(1rem, 1.5vw, 1.35rem);
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.32em;
   color: #40f7d1;
@@ -361,6 +374,11 @@ body {
     top: 10%;
     bottom: 14%;
     width: clamp(360px, 95vw, 860px);
+  }
+
+  .urbanbyte-logo__brand {
+    top: clamp(14%, 16vh, 28%);
+    left: clamp(8%, 10vw, 18%);
   }
 
   .login-panel {
