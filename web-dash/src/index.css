@@ -63,11 +63,25 @@ body {
   z-index: 1;
 }
 
+
 .login-hero__content {
-  max-width: 420px;
+  position: relative;
+  width: 100%;
+  min-height: clamp(420px, 82vh, 720px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.login-hero__copy {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  max-width: 420px;
+  margin-left: auto;
 }
 
 .login-hero__content h1 {
@@ -219,67 +233,68 @@ body {
 }
 
 .urbanbyte-logo {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  position: absolute;
+  top: 8%;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(420px, 80vw, 920px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
   color: #ffffff;
+  z-index: 1;
 }
 
-.urbanbyte-logo svg {
-  filter: drop-shadow(0 15px 25px rgba(8, 139, 255, 0.35));
+.urbanbyte-logo__canvas {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  filter: drop-shadow(0 20px 40px rgba(8, 139, 255, 0.35));
 }
 
 .urbanbyte-logo__neural {
-  width: 320px;
+  width: 100%;
   height: auto;
   opacity: 0.5;
 }
 
-.neural-web path {
-  stroke-dasharray: 320;
-  stroke-dashoffset: 320;
-  animation: neural-draw 6s ease-in-out infinite;
-}
-
-.neural-web__layer:nth-of-type(1) {
-  animation-delay: 0s;
-}
-.neural-web__layer:nth-of-type(2) {
-  animation-delay: 1s;
-}
-.neural-web__layer:nth-of-type(3) {
-  animation-delay: 2s;
+.neural-web__layer {
+  stroke-dasharray: 540;
+  stroke-dashoffset: 540;
+  animation: neural-draw 14s ease-in-out infinite;
+  animation-delay: calc(var(--layer-index) * 1.8s);
 }
 
 .neural-web circle {
   opacity: 0;
   transform: scale(0.4);
   transform-origin: center;
-  animation: neural-pulse 3.5s ease-in-out infinite;
+  animation: neural-pulse 9.5s ease-in-out infinite;
+  animation-delay: calc(var(--node-index) * 0.55s);
 }
 
-.neural-web circle:nth-of-type(1) { animation-delay: 0.3s; }
-.neural-web circle:nth-of-type(2) { animation-delay: 0.55s; }
-.neural-web circle:nth-of-type(3) { animation-delay: 0.8s; }
-.neural-web circle:nth-of-type(4) { animation-delay: 1.05s; }
-.neural-web circle:nth-of-type(5) { animation-delay: 1.3s; }
-.neural-web circle:nth-of-type(6) { animation-delay: 1.55s; }
-
 .urbanbyte-logo__wordmark {
+  position: absolute;
+  top: clamp(12%, 18vh, 32%);
+  left: clamp(6%, 14vw, 20%);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
+  z-index: 2;
 }
 
 .urbanbyte-logo__title {
-  font-size: 1.2rem;
+  font-size: clamp(1.4rem, 2vw, 2rem);
   font-weight: 700;
 }
 
 .urbanbyte-logo__subtitle {
-  font-size: 0.95rem;
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
   font-weight: 600;
   letter-spacing: 0.32em;
   color: #40f7d1;
@@ -287,20 +302,20 @@ body {
 
 @keyframes neural-draw {
   0% {
-    stroke-dashoffset: 320;
-    opacity: 0.2;
+    stroke-dashoffset: 540;
+    opacity: 0.12;
   }
-  30% {
+  25% {
     stroke-dashoffset: 0;
-    opacity: 0.7;
+    opacity: 0.65;
   }
   60% {
     stroke-dashoffset: 0;
-    opacity: 0.45;
+    opacity: 0.35;
   }
   100% {
-    stroke-dashoffset: 320;
-    opacity: 0.2;
+    stroke-dashoffset: 540;
+    opacity: 0.12;
   }
 }
 
@@ -309,13 +324,13 @@ body {
     opacity: 0;
     transform: scale(0.35);
   }
-  40% {
+  35% {
     opacity: 0.9;
-    transform: scale(1.25);
+    transform: scale(1.35);
   }
   70% {
-    opacity: 0.45;
-    transform: scale(1);
+    opacity: 0.4;
+    transform: scale(1.05);
   }
   100% {
     opacity: 0;
@@ -331,6 +346,21 @@ body {
   .login-hero {
     min-height: 280px;
     padding: 3.5rem 2.5rem 2.5rem;
+  }
+
+  .login-hero__content {
+    min-height: clamp(360px, 70vh, 620px);
+    align-items: flex-end;
+  }
+
+  .login-hero__copy {
+    margin-left: 0;
+  }
+
+  .urbanbyte-logo {
+    top: 10%;
+    bottom: 14%;
+    width: clamp(360px, 95vw, 860px);
   }
 
   .login-panel {
