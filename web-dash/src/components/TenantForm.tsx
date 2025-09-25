@@ -567,5 +567,6 @@ function pickColor(theme: Record<string, unknown> | undefined, key: string, fall
 function formatUserName(user: { name: string; role: string } | null) {
   if (!user) return "";
   const [first] = user.name.split(" ");
-  return `${first} (${user.role.toUpperCase()})`;
+  const role = (user.role ?? "").toString().toUpperCase();
+  return role ? `${first} (${role})` : first;
 }

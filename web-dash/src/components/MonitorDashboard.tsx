@@ -160,10 +160,10 @@ export default function MonitorDashboard({ onRefresh }: MonitorDashboardProps) {
           <p className="muted">Nenhum alerta nas últimas execuções.</p>
         ) : (
           <ul>
-            {alerts.map((alert) => (
-              <li key={alert.id} className={`alert-${alert.severity}`}>
+              {alerts.map((alert) => (
+              <li key={alert.id} className={`alert-${alert.severity ?? "info"}`}>
                 <div>
-                  <strong>{alert.severity.toUpperCase()}</strong>
+                  <strong>{(alert.severity ?? "info").toUpperCase()}</strong>
                   <span className="muted">
                     {new Date(alert.triggered_at).toLocaleString()}
                     {alert.tenant_id ? ` • ${alert.tenant_id}` : ""}
