@@ -1,0 +1,32 @@
+DROP TRIGGER IF EXISTS trg_finance_attachments_counter ON saas_finance_attachments;
+DROP FUNCTION IF EXISTS update_finance_attachments_counter();
+
+DROP TRIGGER IF EXISTS trg_saas_compliance_reports_touch ON saas_compliance_reports;
+DROP TRIGGER IF EXISTS trg_saas_app_customizations_touch ON saas_app_customizations;
+DROP TRIGGER IF EXISTS trg_saas_tenant_contract_modules_touch ON saas_tenant_contract_modules;
+DROP TRIGGER IF EXISTS trg_saas_tenant_contracts_touch ON saas_tenant_contracts;
+DROP TRIGGER IF EXISTS trg_saas_city_insights_touch ON saas_city_insights;
+DROP TRIGGER IF EXISTS trg_saas_push_notifications_touch ON saas_push_notifications;
+DROP TRIGGER IF EXISTS trg_saas_announcements_touch ON saas_announcements;
+DROP TRIGGER IF EXISTS trg_saas_finance_entries_touch ON saas_finance_entries;
+DROP TRIGGER IF EXISTS trg_saas_project_tasks_touch ON saas_project_tasks;
+DROP TRIGGER IF EXISTS trg_saas_projects_touch ON saas_projects;
+
+DROP TABLE IF EXISTS saas_compliance_reports;
+DROP TABLE IF EXISTS saas_compliance_audits;
+DROP TABLE IF EXISTS saas_app_customizations;
+DROP TABLE IF EXISTS saas_tenant_invoices;
+DROP TABLE IF EXISTS saas_tenant_contract_modules;
+DROP TABLE IF EXISTS saas_tenant_contracts;
+DROP TABLE IF EXISTS saas_access_logs;
+DROP TABLE IF EXISTS saas_city_insights;
+DROP TABLE IF EXISTS saas_usage_secretariat_rankings;
+DROP TABLE IF EXISTS saas_usage_funnel;
+DROP TABLE IF EXISTS saas_usage_heatmap;
+DROP TABLE IF EXISTS saas_retention_cohorts;
+DROP TABLE IF EXISTS saas_push_notifications;
+DROP TABLE IF EXISTS saas_announcements;
+DROP TABLE IF EXISTS saas_finance_attachments;
+DROP TABLE IF EXISTS saas_finance_entries;
+DROP TABLE IF EXISTS saas_project_tasks;
+DROP TABLE IF EXISTS saas_projects;

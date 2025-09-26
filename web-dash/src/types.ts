@@ -143,11 +143,15 @@ export type MonitorSummaryResponse = {
 export type DashboardProject = {
   id: string;
   name: string;
+  description?: string | null;
   status: string;
-  owner?: string;
-  description?: string;
-  progress?: number;
-  updated_at?: string;
+  progress: number;
+  owner?: string | null;
+  lead?: string | null;
+  started_at?: string | null;
+  target_date?: string | null;
+  updated_at: string;
+  tasks: ProjectTask[];
 };
 
 export type DashboardOverviewMetrics = {
@@ -183,24 +187,26 @@ export type DashboardOverviewResponse = {
 export type ProjectTask = {
   id: string;
   title: string;
-  owner: string;
-  status: "pending" | "in_progress" | "blocked" | "done";
-  due_date?: string;
-  notes?: string;
+  owner?: string | null;
+  status: string;
+  due_date?: string | null;
+  notes?: string | null;
+  position: number;
   created_at: string;
+  updated_at: string;
   completed_at?: string | null;
 };
 
 export type ProjectRecord = {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   status: string;
   progress: number;
-  lead?: string;
-  squad?: string[];
-  started_at?: string;
-  target_date?: string;
+  owner?: string | null;
+  lead?: string | null;
+  started_at?: string | null;
+  target_date?: string | null;
   tasks: ProjectTask[];
   updated_at: string;
 };
@@ -208,6 +214,7 @@ export type ProjectRecord = {
 export type FinanceAttachment = {
   id: string;
   name: string;
+  url?: string;
   uploaded_at: string;
 };
 
@@ -328,6 +335,7 @@ export type CommunicationCenter = {
 
 export type CityInsight = {
   id: string;
+  tenant_id: string;
   name: string;
   population: number;
   active_users: number;

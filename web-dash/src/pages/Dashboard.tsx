@@ -51,6 +51,11 @@ type ContractAttachment = {
   id: string;
   name: string;
   uploadedAt: string;
+  url?: string | null;
+  amount?: number | null;
+  status?: string | null;
+  referenceMonth?: string | null;
+  notes?: string | null;
 };
 
 type ContractFormState = {
@@ -59,7 +64,7 @@ type ContractFormState = {
   startDate: string;
   renewalDate: string;
   modules: Record<string, boolean>;
-  contractFileName?: string;
+  contractFileUrl?: string | null;
   invoices: ContractAttachment[];
   notes: string;
 };
@@ -79,6 +84,12 @@ type TaskFormState = {
   notes: string;
 };
 
+type PendingAttachment = {
+  id: string;
+  name: string;
+  file: File;
+};
+
 type FinanceFormState = {
   entryType: FinanceEntry["entry_type"];
   category: string;
@@ -89,7 +100,7 @@ type FinanceFormState = {
   costCenter: string;
   responsible: string;
   notes: string;
-  attachments: FinanceAttachment[];
+  attachments: PendingAttachment[];
 };
 
 type MetricBreakdown = { label: string; value: number };
@@ -111,12 +122,15 @@ type ConfigFormState = {
 };
 
 type AppCustomizationState = {
-  logoFileName?: string;
+  tenantId?: string;
+  logoUrl?: string | null;
+  pendingLogo?: File | null;
+  pendingLogoName?: string;
   primaryColor: string;
   secondaryColor: string;
-  weatherProvider: string;
-  weatherApiKey: string;
-  welcomeMessage: string;
+  weatherProvider?: string | null;
+  weatherApiKey?: string | null;
+  welcomeMessage?: string | null;
   enablePush: boolean;
   enableWeather: boolean;
 };
@@ -147,244 +161,42 @@ const DEFAULT_OVERVIEW_METRICS: DashboardOverviewMetrics = {
   total_accesses: 0
 };
 
-const DEFAULT_PROJECTS: DashboardProject[] = [
-  {
-    id: "urbanbyte-metrics",
-    name: "Módulo de indicadores urbanos",
-    status: "Discovery",
-    description: "Levantamento de requisitos com prefeituras piloto.",
-    progress: 25
-  }
-];
+const DEFAULT_PROJECTS: DashboardProject[] = [];
 
-const DEFAULT_FINANCE_ENTRIES: FinanceEntry[] = [
-  {
-    id: "finance-op-001",
-    entry_type: "expense",
-    category: "Operacional",
-    description: "Licenciamento plataforma GOV.BR",
-    amount: 1890,
-    due_date: new Date().toISOString().slice(0, 10),
-    paid: false,
-    method: "Transferência bancária",
-    cost_center: "SaaS",
-    responsible: "Equipe Operações",
-    notes: "Renovação trimestral.",
-    attachments: [],
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "finance-rec-001",
-    entry_type: "revenue",
-    category: "Financeiro",
-    description: "Fatura SaaS — Prefeitura de Zabelê",
-    amount: 9200,
-    due_date: new Date().toISOString().slice(0, 10),
-    paid: true,
-    paid_at: new Date().toISOString(),
-    method: "PIX",
-    cost_center: "Receita recorrente",
-    responsible: "Financeiro",
-    notes: "Pago via conciliação automática.",
-    attachments: [],
-    created_at: new Date().toISOString()
-  }
-];
+const DEFAULT_FINANCE_ENTRIES: FinanceEntry[] = [];
 
 const DEFAULT_RETENTION: RetentionSummary = {
-  cohorts: [
-    { month: "2025-01", tenants: 6, churn: 0, expansion: 2, nps: 68, engagement: 72 },
-    { month: "2025-02", tenants: 8, churn: 1, expansion: 3, nps: 74, engagement: 79 },
-    { month: "2025-03", tenants: 11, churn: 1, expansion: 4, nps: 79, engagement: 83 },
-    { month: "2025-04", tenants: 15, churn: 1, expansion: 5, nps: 82, engagement: 86 }
-  ],
-  churn_rate: 6,
-  expansion_rate: 24,
-  nps_global: 78,
-  active_tenants: 14
+  cohorts: [],
+  churn_rate: 0,
+  expansion_rate: 0,
+  nps_global: 0,
+  active_tenants: 0
 };
 
 const DEFAULT_USAGE_ANALYTICS: UsageAnalytics = {
-  heatmap: [
-    {
-      module: "Portal do cidadão",
-      labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-      usage: [420, 460, 510, 540, 590, 220, 180]
-    },
-    {
-      module: "Suporte digital",
-      labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-      usage: [180, 210, 260, 230, 200, 120, 90]
-    }
-  ],
-  citizen_funnel: [
-    { stage: "Acessos", value: 12800, conversion: 100 },
-    { stage: "Autenticados", value: 6400, conversion: 50 },
-    { stage: "Solicitações iniciadas", value: 4200, conversion: 33 },
-    { stage: "Solicitações concluídas", value: 3100, conversion: 24 }
-  ],
-  top_secretariats: [
-    { name: "Assistência Social", interactions: 1280 },
-    { name: "Tributos", interactions: 960 },
-    { name: "Educação", interactions: 780 }
-  ]
+  heatmap: [],
+  citizen_funnel: [],
+  top_secretariats: []
 };
 
-const DEFAULT_COMPLIANCE: ComplianceRecord[] = [
-  {
-    tenant_id: "tenant-zabele",
-    tenant_name: "Prefeitura de Zabelê",
-    audits: [
-      {
-        id: "audit-001",
-        actor: "João Silva",
-        action: "Exportou relatório financeiro",
-        performed_at: "2025-05-02T14:22:00Z",
-        channel: "Painel",
-        sla_breach: false
-      },
-      {
-        id: "audit-002",
-        actor: "Processo automático",
-        action: "Verificação de backups concluída",
-        performed_at: "2025-05-02T02:05:00Z",
-        channel: "Agente",
-        sla_breach: false
-      }
-    ],
-    reports: [
-      { id: "report-2025Q1", title: "Relatório TCM Q1", period: "Jan/Mar 2025", status: "Entregue", url: "https://example.com/report.pdf" },
-      { id: "report-lgpd", title: "Auditoria LGPD", period: "Abr 2025", status: "Em análise" }
-    ]
-  }
-];
+const DEFAULT_COMPLIANCE: ComplianceRecord[] = [];
 
 const DEFAULT_COMMUNICATION_CENTER: CommunicationCenter = {
-  announcements: [
-    {
-      id: "announce-001",
-      title: "Atualização do módulo de tickets",
-      published_at: "2025-05-01T09:00:00Z",
-      author: "Equipe Urbanbyte",
-      audience: "Todas as prefeituras",
-      status: "Publicado"
-    }
-  ],
-  push_queue: [
-    {
-      id: "push-req-001",
-      tenant_name: "Secretaria de Educação - Zabelê",
-      created_at: "2025-05-03T13:45:00Z",
-      type: "manual",
-      channel: "Push cidadão",
-      status: "pending",
-      subject: "Campanha de matrícula 2025",
-      summary: "Divulgação do calendário de matrícula nas escolas municipais",
-      scheduled_for: "2025-05-05T12:00:00Z"
-    }
-  ],
-  history: [
-    {
-      id: "push-req-000",
-      tenant_name: "Automação Urbanbyte",
-      created_at: "2025-04-28T10:00:00Z",
-      type: "automatic",
-      channel: "Push cidadão",
-      status: "approved",
-      subject: "Lembrete de agendamento de vacinação",
-      summary: "Envio automático D-1 para cidadãos com agendamento",
-      scheduled_for: "2025-04-29T08:00:00Z"
-    }
-  ]
+  announcements: [],
+  push_queue: [],
+  history: []
 };
 
-const DEFAULT_CITY_INSIGHTS: CityInsight[] = [
-  {
-    id: "zabele",
-    name: "Zabelê",
-    population: 7500,
-    active_users: 1820,
-    requests_total: 4280,
-    satisfaction: 87,
-    last_sync: "2025-05-03T05:00:00Z",
-    highlights: ["Alta adesão ao app cidadão", "Portal de Tributos com 98% de disponibilidade"]
-  },
-  {
-    id: "cabaceiras",
-    name: "Cabaceiras",
-    population: 12000,
-    active_users: 2540,
-    requests_total: 6120,
-    satisfaction: 82,
-    last_sync: "2025-05-03T05:00:00Z",
-    highlights: ["Integração Cloudflare 100% propagada", "Projetos de iluminação inteligente em andamento"]
-  }
-];
+const DEFAULT_CITY_INSIGHTS: CityInsight[] = [];
 
-const DEFAULT_ACCESS_LOGS: AccessLogEntry[] = [
-  {
-    id: "log-001",
-    user: "Marina Oliveira",
-    role: "SaaS Owner",
-    tenant: "Urbanbyte",
-    logged_at: "2025-05-03T14:12:05Z",
-    ip: "200.201.50.12",
-    location: "Recife - PE",
-    user_agent: "Chrome 123 • macOS",
-    status: "Sucesso"
-  },
-  {
-    id: "log-002",
-    user: "Carlos Medeiros",
-    role: "Secretário",
-    tenant: "Prefeitura de Zabelê",
-    logged_at: "2025-05-03T13:58:44Z",
-    ip: "189.12.44.201",
-    location: "Zabelê - PB",
-    user_agent: "Edge 122 • Windows",
-    status: "Sucesso"
-  },
-  {
-    id: "log-003",
-    user: "Processo Externo",
-    role: "Webhook",
-    tenant: "Prefeitura de Cabaceiras",
-    logged_at: "2025-05-03T13:05:12Z",
-    ip: "34.201.12.55",
-    location: "AWS us-east-1",
-    user_agent: "Urbanbyte Agent",
-    status: "Token expirado"
-  }
-];
+const DEFAULT_ACCESS_LOGS: AccessLogEntry[] = [];
 
-const DEFAULT_APP_SETTINGS: Record<string, AppCustomizationState> = DEFAULT_CITY_INSIGHTS.reduce(
-  (acc, city) => {
-    acc[city.id] = {
-      ...createDefaultAppCustomization(),
-      welcomeMessage: `Bem-vindo ao app de ${city.name}`
-    };
-    return acc;
-  },
-  {} as Record<string, AppCustomizationState>
-);
+const DEFAULT_APP_SETTINGS: Record<string, AppCustomizationState> = {};
 
 const DEFAULT_ACCESS_ANALYTICS: AccessAnalyticsState = {
-  cities: [
-    { label: "Zabelê", value: 1820 },
-    { label: "Cabaceiras", value: 2540 },
-    { label: "Outros", value: 780 }
-  ],
-  operatingSystems: [
-    { label: "iOS", value: 2100 },
-    { label: "Android", value: 2800 },
-    { label: "Windows", value: 640 },
-    { label: "macOS", value: 320 }
-  ],
-  devices: [
-    { label: "Mobile", value: 3600 },
-    { label: "Desktop", value: 950 },
-    { label: "Tablet", value: 310 }
-  ]
+  cities: [],
+  operatingSystems: [],
+  devices: []
 };
 
 const INITIAL_MONITOR_SIGNALS: MonitorSignals = { critical: 0, warning: 0, totalAlerts: 0 };
@@ -400,18 +212,18 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 const CONTRACT_STATUS_OPTIONS = [
-  { value: "rascunho", label: "Rascunho" },
-  { value: "em-analise", label: "Em análise" },
-  { value: "ativo", label: "Ativo" },
-  { value: "em-renovacao", label: "Em renovação" },
-  { value: "encerrado", label: "Encerrado" }
+  { value: "draft", label: "Rascunho" },
+  { value: "review", label: "Em análise" },
+  { value: "active", label: "Ativo" },
+  { value: "renewal", label: "Em renovação" },
+  { value: "closed", label: "Encerrado" }
 ];
 
 const PROJECT_STATUS_OPTIONS = [
-  { value: "Discovery", label: "Discovery" },
-  { value: "Em andamento", label: "Em andamento" },
-  { value: "Em validação", label: "Em validação" },
-  { value: "Concluído", label: "Concluído" }
+  { value: "planning", label: "Discovery" },
+  { value: "in_progress", label: "Em andamento" },
+  { value: "review", label: "Em validação" },
+  { value: "done", label: "Concluído" }
 ] as const;
 
 const FINANCE_TYPE_OPTIONS = [
@@ -464,7 +276,7 @@ const getInitialTheme = (): "light" | "dark" => {
 };
 
 const createDefaultContractForm = (): ContractFormState => ({
-  status: "rascunho",
+  status: "draft",
   contractValue: "",
   startDate: "",
   renewalDate: "",
@@ -472,6 +284,7 @@ const createDefaultContractForm = (): ContractFormState => ({
     acc[module.id] = false;
     return acc;
   }, {}),
+  contractFileUrl: null,
   invoices: [],
   notes: ""
 });
@@ -514,33 +327,116 @@ const createDefaultConfigForm = (): ConfigFormState => ({
   confirmPassword: ""
 });
 
-function createDefaultAppCustomization(): AppCustomizationState {
+function createDefaultAppCustomization(
+  overrides: Partial<AppCustomizationState> = {}
+): AppCustomizationState {
   return {
+    tenantId: undefined,
+    logoUrl: undefined,
+    pendingLogo: null,
+    pendingLogoName: undefined,
     primaryColor: "#06AA48",
     secondaryColor: "#0F172A",
     weatherProvider: "OpenWeather",
-    weatherApiKey: "",
-    welcomeMessage: "Bem-vindo ao aplicativo Urbanbyte",
+    weatherApiKey: null,
+    welcomeMessage: null,
     enablePush: true,
-    enableWeather: true
+    enableWeather: true,
+    ...overrides
   };
 }
 
 const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-const dashboardProjectToRecord = (project: DashboardProject): ProjectRecord => ({
-  id: project.id,
-  name: project.name,
-  description: project.description ?? "",
-  status: project.status ?? "Em andamento",
-  progress: project.progress ?? 0,
-  lead: project.owner ?? "",
-  squad: [],
-  started_at: project.updated_at ?? new Date().toISOString(),
-  target_date: undefined,
-  tasks: [],
-  updated_at: new Date().toISOString()
-});
+const toDateInput = (value?: string | null) => (value ? value.slice(0, 10) : "");
+
+const formatDateTime = (value?: string | null) =>
+  value ? new Date(value).toLocaleString("pt-BR") : "";
+
+const slugify = (value: string, fallback = "") => {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return normalized || fallback;
+};
+
+const normalizeContractStatus = (status: string | null | undefined) => {
+  const value = slugify(status ?? "", "draft");
+  switch (value) {
+    case "activo":
+    case "ativo":
+    case "active":
+      return "active";
+    case "em_analise":
+    case "analysis":
+    case "review":
+      return "review";
+    case "em_renovacao":
+    case "renovacao":
+    case "renewal":
+      return "renewal";
+    case "encerrado":
+    case "closed":
+      return "closed";
+    case "rascunho":
+    case "draft":
+    default:
+      return "draft";
+  }
+};
+
+const projectStatusLabel = (status: string) => {
+  const match = PROJECT_STATUS_OPTIONS.find((option) => option.value === status);
+  return match?.label ?? status;
+};
+
+const normalizeProjectStatus = (status: string | null | undefined) => {
+  const value = slugify(status ?? "", "planning");
+  switch (value) {
+    case "in_progress":
+    case "em_andamento":
+      return "in_progress";
+    case "review":
+    case "em_validacao":
+      return "review";
+    case "done":
+    case "concluido":
+      return "done";
+    case "planning":
+    case "discovery":
+    default:
+      return "planning";
+  }
+};
+
+const dashboardProjectToRecord = (project: DashboardProject): ProjectRecord => {
+  const tasks: ProjectTask[] = (project.tasks ?? []).map((task) => ({
+    ...task,
+    owner: task.owner ?? undefined,
+    due_date: task.due_date ?? null,
+    notes: task.notes ?? null
+  }));
+  const progress = Number.isFinite(project.progress)
+    ? project.progress
+    : computeProjectProgress(tasks, 0);
+
+  return {
+    id: project.id,
+    name: project.name,
+    description: project.description ?? "",
+    status: normalizeProjectStatus(project.status),
+    progress,
+    owner: project.owner ?? undefined,
+    lead: project.lead ?? undefined,
+    started_at: project.started_at ?? undefined,
+    target_date: project.target_date ?? undefined,
+    tasks,
+    updated_at: project.updated_at ?? new Date().toISOString()
+  };
+};
 
 const formatNumber = (value?: number | null) =>
   (value ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
@@ -560,18 +456,6 @@ const parseCurrencyInput = (input: string) => {
   const normalized = input.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
   const value = Number(normalized);
   return Number.isFinite(value) ? value : 0;
-};
-
-const withUpdatedTasks = (project: ProjectRecord, tasks: ProjectTask[]): ProjectRecord => {
-  const progress = computeProjectProgress(tasks, project.progress);
-  const status = progress >= 100 ? "Concluído" : project.status;
-  return {
-    ...project,
-    tasks,
-    progress,
-    status,
-    updated_at: new Date().toISOString()
-  };
 };
 
 export default function DashboardPage() {
@@ -629,12 +513,267 @@ export default function DashboardPage() {
   );
   const [communicationFilter, setCommunicationFilter] = useState<"queue" | "history">("queue");
   const [cityInsights, setCityInsights] = useState<CityInsight[]>(DEFAULT_CITY_INSIGHTS);
-  const [selectedCityId, setSelectedCityId] = useState<string>(DEFAULT_CITY_INSIGHTS[0]?.id ?? "");
+  const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [accessLogs, setAccessLogs] = useState<AccessLogEntry[]>(DEFAULT_ACCESS_LOGS);
   const [accessAnalytics, setAccessAnalytics] = useState<AccessAnalyticsState>(DEFAULT_ACCESS_ANALYTICS);
   const [configForm, setConfigForm] = useState<ConfigFormState>(createDefaultConfigForm);
   const [appSettings, setAppSettings] = useState<Record<string, AppCustomizationState>>(DEFAULT_APP_SETTINGS);
-  const [selectedAppCityId, setSelectedAppCityId] = useState<string>(DEFAULT_CITY_INSIGHTS[0]?.id ?? "");
+  const [selectedAppCityId, setSelectedAppCityId] = useState<string>("");
+
+  const loadTenants = useCallback(async () => {
+    const data = await authorizedFetch<{ tenants?: Tenant[] }>("/saas/tenants");
+    const list = Array.isArray(data.tenants) ? data.tenants : [];
+    setTenants(list);
+    setTenantSignals({
+      pending: list.filter((tenant) => tenant.status !== "active").length,
+      dnsIssues: list.filter((tenant) => {
+        const status = (tenant.dns_status ?? "").toLowerCase();
+        return status && status !== "ok";
+      }).length
+    });
+    return list;
+  }, [authorizedFetch]);
+
+  const loadOverview = useCallback(async () => {
+    try {
+      const response = await authorizedFetch<DashboardOverviewResponse>("/saas/metrics/overview");
+
+      const metrics = response?.metrics ?? DEFAULT_OVERVIEW_METRICS;
+      setOverviewMetrics({ ...DEFAULT_OVERVIEW_METRICS, ...metrics });
+
+      const projectData = response?.projects ?? [];
+      setProjects(projectData);
+
+      if (response?.retention) {
+        setRetentionSummary(response.retention);
+      }
+      if (response?.usage) {
+        setUsageAnalytics(response.usage);
+      }
+      if (response?.compliance) {
+        setComplianceRecords(response.compliance);
+      }
+      if (response?.communication) {
+        setCommunicationCenter(response.communication);
+      }
+
+      if (response?.city_insights) {
+        setCityInsights(response.city_insights);
+        setSelectedCityId((current) => {
+          const exists = response.city_insights?.some((city) => city.tenant_id === current);
+          if (current && exists) return current;
+          return response.city_insights?.[0]?.tenant_id ?? "";
+        });
+        setSelectedAppCityId((current) => {
+          const exists = response.city_insights?.some((city) => city.tenant_id === current);
+          if (current && exists) return current;
+          return response.city_insights?.[0]?.tenant_id ?? "";
+        });
+        setAppSettings((prev) => {
+          const next = { ...prev };
+          response.city_insights?.forEach((city) => {
+            const key = city.tenant_id;
+            if (!next[key]) {
+              next[key] = createDefaultAppCustomization({
+                tenantId: key,
+                welcomeMessage: `Bem-vindo ao app de ${city.name}`
+              });
+            } else {
+              next[key] = {
+                ...next[key],
+                tenantId: key,
+                welcomeMessage:
+                  next[key].welcomeMessage ?? `Bem-vindo ao app de ${city.name}`
+              };
+            }
+          });
+          return next;
+        });
+      }
+
+      if (response?.access_logs) {
+        setAccessLogs(response.access_logs);
+
+        if (response.access_logs.length) {
+          const cityMap = new Map<string, number>();
+          const osMap = new Map<string, number>();
+          const deviceMap = new Map<string, number>();
+
+          response.access_logs.forEach((log) => {
+            const cityLabel = log.tenant ?? "Outros";
+            cityMap.set(cityLabel, (cityMap.get(cityLabel) ?? 0) + 1);
+
+            const agent = (log.user_agent ?? "").toLowerCase();
+            let osLabel = "Outros";
+            if (agent.includes("android")) osLabel = "Android";
+            else if (agent.includes("iphone") || agent.includes("ios")) osLabel = "iOS";
+            else if (agent.includes("windows")) osLabel = "Windows";
+            else if (agent.includes("mac")) osLabel = "macOS";
+            else if (agent.includes("linux")) osLabel = "Linux";
+            osMap.set(osLabel, (osMap.get(osLabel) ?? 0) + 1);
+
+            let deviceLabel = "Desktop";
+            if (agent.includes("mobile") || agent.includes("android") || agent.includes("iphone")) {
+              deviceLabel = "Mobile";
+            } else if (agent.includes("tablet") || agent.includes("ipad")) {
+              deviceLabel = "Tablet";
+            }
+            deviceMap.set(deviceLabel, (deviceMap.get(deviceLabel) ?? 0) + 1);
+          });
+
+          const top = (source: Map<string, number>): MetricBreakdown[] =>
+            Array.from(source.entries())
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([label, value]) => ({ label, value }));
+
+          setAccessAnalytics({
+            cities: top(cityMap),
+            operatingSystems: top(osMap),
+            devices: top(deviceMap)
+          });
+        } else {
+          setAccessAnalytics(DEFAULT_ACCESS_ANALYTICS);
+        }
+      }
+    } catch (err) {
+      // Mantém os valores atuais e registra erro em mensagem discreta
+      const msg = err instanceof Error ? err.message : "Falha ao carregar métricas";
+      setError((current) => current ?? msg);
+    }
+  }, [authorizedFetch]);
+
+  const loadFinanceEntries = useCallback(async () => {
+    try {
+      const response = await authorizedFetch<{ entries?: FinanceEntry[] }>(
+        "/saas/finance/entries"
+      );
+      const entries = Array.isArray(response.entries) ? response.entries : [];
+      setFinanceEntries(entries);
+      return entries;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao carregar lançamentos";
+      setError((current) => current ?? msg);
+      return [] as FinanceEntry[];
+    }
+  }, [authorizedFetch]);
+
+  const loadContractForTenant = useCallback(
+    async (tenantId: string) => {
+      if (!tenantId) return;
+      try {
+        const response = await authorizedFetch<{ contract: any }>(
+          `/saas/tenants/${tenantId}/contract`
+        );
+
+        const contract = response.contract;
+        if (!contract) return;
+
+        const value =
+          typeof contract.contract_value === "number"
+            ? contract.contract_value.toFixed(2)
+            : "";
+
+        const invoices: ContractAttachment[] = Array.isArray(contract.invoices)
+          ? contract.invoices.map((invoice: any) => {
+              let referenceLabel = invoice.reference_month ?? "";
+              if (typeof invoice.reference_month === "string" && invoice.reference_month) {
+                const date = new Date(invoice.reference_month);
+                if (!Number.isNaN(date.valueOf())) {
+                  referenceLabel = date.toLocaleDateString("pt-BR", {
+                    month: "short",
+                    year: "numeric"
+                  });
+                }
+              }
+
+              return {
+                id: invoice.id,
+                name: referenceLabel || invoice.status || `NF ${new Date().toISOString()}`,
+                uploadedAt: formatDateTime(invoice.uploaded_at),
+                url: invoice.file_url ?? undefined,
+                amount: invoice.amount ?? null,
+                status: invoice.status ?? null,
+                referenceMonth: invoice.reference_month ?? null,
+                notes: invoice.notes ?? null
+              };
+            })
+          : [];
+
+        const modules = MODULE_CATALOG.reduce<Record<string, boolean>>((acc, module) => {
+          acc[module.id] = Boolean(contract.modules?.[module.id]);
+          return acc;
+        }, {});
+
+        setContractForms((prev) => ({
+          ...prev,
+          [tenantId]: {
+            status: normalizeContractStatus(contract.status),
+            contractValue: value,
+            startDate: toDateInput(contract.start_date ?? null),
+            renewalDate: toDateInput(contract.renewal_date ?? null),
+            modules,
+            contractFileUrl: contract.contract_file_url ?? null,
+            invoices,
+            notes: contract.notes ?? ""
+          }
+        }));
+      } catch (err) {
+        // Se contrato não existir (404), mantém padrão vazio
+        setContractForms((prev) => ({
+          ...prev,
+          [tenantId]: {
+            status: "draft",
+            contractValue: "",
+            startDate: "",
+            renewalDate: "",
+            modules: MODULE_CATALOG.reduce<Record<string, boolean>>((acc, module) => {
+              acc[module.id] = false;
+              return acc;
+            }, {}),
+            contractFileUrl: null,
+            invoices: [],
+            notes: ""
+          }
+        }));
+      }
+    },
+    [authorizedFetch]
+  );
+
+  const loadAppCustomization = useCallback(
+    async (tenantId: string) => {
+      if (!tenantId) return;
+      try {
+        const response = await authorizedFetch<{ app: any }>(`/saas/tenants/${tenantId}/app`);
+        const app = response.app;
+        if (!app) return;
+
+        setAppSettings((prev) => ({
+          ...prev,
+          [tenantId]: createDefaultAppCustomization({
+            tenantId,
+            logoUrl: app.logo_url ?? undefined,
+            primaryColor: app.primary_color ?? "#06AA48",
+            secondaryColor: app.secondary_color ?? "#0F172A",
+            weatherProvider: app.weather_provider ?? null,
+            weatherApiKey: app.weather_api_key ?? null,
+            welcomeMessage: app.welcome_message ?? null,
+            enablePush: Boolean(app.enable_push),
+            enableWeather: Boolean(app.enable_weather),
+            pendingLogo: null,
+            pendingLogoName: undefined
+          })
+        }));
+      } catch (err) {
+        setAppSettings((prev) => ({
+          ...prev,
+          [tenantId]: createDefaultAppCustomization({ tenantId })
+        }));
+      }
+    },
+    [authorizedFetch]
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -646,170 +785,60 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) {
       setTenants([]);
+      setSelectedTenantId("");
       setIsLoadingTenants(false);
       return;
     }
 
-    const load = async () => {
-      try {
-        setIsLoadingTenants(true);
-        const data = await authorizedFetch<{ tenants?: Tenant[] }>("/saas/tenants");
-        const list = Array.isArray(data.tenants) ? data.tenants : [];
-        setTenants(list);
-        setTenantSignals({
-          pending: list.filter((tenant) => tenant.status !== "active").length,
-          dnsIssues: list.filter((tenant) => {
-            const status = (tenant.dns_status ?? "").toLowerCase();
-            return status && status !== "ok";
-          }).length
-        });
-        if (list.length && !selectedTenantId) {
-          setSelectedTenantId(list[0].id);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Falha ao carregar prefeituras";
-        setError(msg);
-      } finally {
-        setIsLoadingTenants(false);
-      }
-    };
-
-    void load();
-  }, [authorizedFetch, user, selectedTenantId]);
-
-  useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
+    const run = async () => {
       try {
-        const response = await authorizedFetch<DashboardOverviewResponse>(
-          "/saas/metrics/overview"
-        );
+        setIsLoadingTenants(true);
+        const list = await loadTenants();
         if (cancelled) return;
-        const metrics = response?.metrics ?? {};
-        setOverviewMetrics((prev) => ({ ...prev, ...metrics }));
-        setProjects(
-          response?.projects && response.projects.length > 0 ? response.projects : DEFAULT_PROJECTS
-        );
-        if (response?.retention) setRetentionSummary(response.retention);
-        if (response?.usage) setUsageAnalytics(response.usage);
-        if (response?.compliance) setComplianceRecords(response.compliance);
-        if (response?.communication) setCommunicationCenter(response.communication);
-        if (response?.city_insights && response.city_insights.length) {
-          setCityInsights(response.city_insights);
-          setSelectedCityId((current) => {
-            if (!current || !response.city_insights?.some((city) => city.id === current)) {
-              return response.city_insights[0].id;
-            }
-            return current;
-          });
-          setSelectedAppCityId((current) => {
-            if (!current || !response.city_insights?.some((city) => city.id === current)) {
-              return response.city_insights[0].id;
-            }
-            return current;
-          });
-          setAppSettings((prev) => {
-            const next = { ...prev };
-            response.city_insights?.forEach((city) => {
-              if (!next[city.id]) {
-                next[city.id] = {
-                  ...createDefaultAppCustomization(),
-                  welcomeMessage: `Bem-vindo ao app de ${city.name}`
-                };
-              }
-            });
-            return next;
-          });
-        }
-        if (response?.access_logs) {
-          setAccessLogs(response.access_logs);
-          if (response.access_logs.length) {
-            const cityMap = new Map<string, number>();
-            const osMap = new Map<string, number>();
-            const deviceMap = new Map<string, number>();
-
-            response.access_logs.forEach((log) => {
-              const cityLabel = log.tenant ?? "Outros";
-              cityMap.set(cityLabel, (cityMap.get(cityLabel) ?? 0) + 1);
-
-              const agent = (log.user_agent ?? "").toLowerCase();
-              let osLabel = "Outros";
-              if (agent.includes("android")) osLabel = "Android";
-              else if (agent.includes("iphone") || agent.includes("ios")) osLabel = "iOS";
-              else if (agent.includes("windows")) osLabel = "Windows";
-              else if (agent.includes("mac")) osLabel = "macOS";
-              else if (agent.includes("linux")) osLabel = "Linux";
-              osMap.set(osLabel, (osMap.get(osLabel) ?? 0) + 1);
-
-              let deviceLabel = "Desktop";
-              if (agent.includes("mobile") || agent.includes("android") || agent.includes("iphone")) {
-                deviceLabel = "Mobile";
-              } else if (agent.includes("tablet") || agent.includes("ipad")) {
-                deviceLabel = "Tablet";
-              }
-              deviceMap.set(deviceLabel, (deviceMap.get(deviceLabel) ?? 0) + 1);
-            });
-
-            const top = (source: Map<string, number>): MetricBreakdown[] =>
-              Array.from(source.entries())
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([label, value]) => ({ label, value }));
-
-            setAccessAnalytics({
-              cities: top(cityMap),
-              operatingSystems: top(osMap),
-              devices: top(deviceMap)
-            });
-          }
+        if (list.length) {
+          setSelectedTenantId((current) => (current ? current : list[0].id));
         }
       } catch (err) {
-        // Mantém métricas padrão se a API não estiver disponível
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : "Falha ao carregar prefeituras";
+        setError((current) => current ?? msg);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingTenants(false);
+        }
       }
     };
 
-    void load();
+    void run();
 
     return () => {
       cancelled = true;
     };
-  }, [authorizedFetch]);
+  }, [user, loadTenants]);
 
   useEffect(() => {
-    if (!tenants.length) return;
-    if (!selectedTenantId) {
-      setSelectedTenantId(tenants[0].id);
-    }
-  }, [tenants, selectedTenantId]);
+    void loadOverview();
+  }, [loadOverview]);
 
   useEffect(() => {
-    if (!projects.length) return;
-    setProjectBoard((prev) => {
-      const map = new Map(prev.map((project) => [project.id, project] as const));
-      const nowIso = new Date().toISOString();
-      projects.forEach((project, index) => {
-        const id = project.id || `project-${index}`;
-        const current = map.get(id);
-        const tasks = current?.tasks ?? [];
-        const progress = computeProjectProgress(tasks, project.progress ?? current?.progress ?? 0);
-        map.set(id, {
-          id,
-          name: project.name,
-          description: project.description ?? current?.description ?? "",
-          status: project.status ?? current?.status ?? "Em andamento",
-          progress,
-          lead: project.owner ?? current?.lead ?? "",
-          squad: current?.squad ?? [],
-          started_at: current?.started_at ?? project.updated_at ?? nowIso,
-          target_date: current?.target_date,
-          tasks,
-          updated_at: nowIso
-        });
-      });
-      return Array.from(map.values());
-    });
+    setProjectBoard(projects.map(dashboardProjectToRecord));
   }, [projects]);
+
+  useEffect(() => {
+    void loadFinanceEntries();
+  }, [loadFinanceEntries]);
+
+  useEffect(() => {
+    if (!selectedTenantId) return;
+    void loadContractForTenant(selectedTenantId);
+  }, [selectedTenantId, loadContractForTenant]);
+
+  useEffect(() => {
+    if (!selectedAppCityId) return;
+    void loadAppCustomization(selectedAppCityId);
+  }, [selectedAppCityId, loadAppCustomization]);
 
   useEffect(() => {
     if (projectBoard.length === 0) {
@@ -828,7 +857,7 @@ export default function DashboardPage() {
       }).length;
       return count + overdue;
     }, 0);
-    const active = projectBoard.filter((project) => project.status !== "Concluído").length;
+    const active = projectBoard.filter((project) => project.status !== "done").length;
     setProjectSignals({ active, attention });
   }, [projectBoard]);
 
@@ -888,7 +917,9 @@ export default function DashboardPage() {
     if (projectBoard.length === 0) {
       return { total: 0, completed: 0, avgProgress: 0 };
     }
-    const completed = projectBoard.filter((project) => project.status === "Concluído").length;
+    const completed = projectBoard.filter(
+      (project) => project.status === "done" || project.progress >= 100
+    ).length;
     const avgProgress =
       projectBoard.reduce((sum, project) => sum + project.progress, 0) / projectBoard.length;
     return { total: projectBoard.length, completed, avgProgress };
@@ -901,7 +932,9 @@ export default function DashboardPage() {
 
   const selectedCity = useMemo(() => {
     if (!cityInsights.length) return null;
-    return cityInsights.find((city) => city.id === selectedCityId) ?? cityInsights[0];
+    return (
+      cityInsights.find((city) => city.tenant_id === selectedCityId) ?? cityInsights[0]
+    );
   }, [cityInsights, selectedCityId]);
 
   const navBadges = useMemo(() => {
@@ -1007,135 +1040,218 @@ export default function DashboardPage() {
     });
   };
 
-  const handleModuleToggle = (tenantId: string, moduleId: string) => {
+  const handleModuleToggle = async (tenantId: string, moduleId: string) => {
     const current = getContractForm(tenantId);
-    updateContractForm(tenantId, {
-      modules: { ...current.modules, [moduleId]: !current.modules[moduleId] }
-    });
-  };
+    const modules = { ...current.modules, [moduleId]: !current.modules[moduleId] };
+    updateContractForm(tenantId, { modules });
 
-  const handleContractFile = (tenantId: string, files: FileList | null) => {
-    if (!files || files.length === 0) {
-      updateContractForm(tenantId, { contractFileName: undefined });
-      return;
+    try {
+      await authorizedFetch(`/saas/tenants/${tenantId}/contract/modules`, {
+        method: "PUT",
+        body: JSON.stringify({ modules })
+      });
+      setError(null);
+      setMessage("Módulos atualizados.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar módulos");
+      await loadContractForTenant(tenantId);
     }
-    updateContractForm(tenantId, { contractFileName: files[0].name });
   };
 
-  const handleInvoicesUpload = (tenantId: string, files: FileList | null) => {
+  const handleContractFile = async (tenantId: string, files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const additions: ContractAttachment[] = Array.from(files).map((file) => ({
-      id: `${tenantId}-${file.name}-${Date.now()}`,
-      name: file.name,
-      uploadedAt: new Date().toLocaleDateString("pt-BR")
-    }));
-    const current = getContractForm(tenantId);
-    updateContractForm(tenantId, { invoices: [...current.invoices, ...additions] });
+
+    const formData = new FormData();
+    formData.append("file", files[0]);
+
+    try {
+      await authorizedFetch(`/saas/tenants/${tenantId}/contract/file`, {
+        method: "POST",
+        body: formData
+      });
+      await loadContractForTenant(tenantId);
+      setError(null);
+      setMessage("Contrato atualizado.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao enviar contrato");
+    }
   };
 
-  const handleRemoveInvoice = (tenantId: string, attachmentId: string) => {
-    const current = getContractForm(tenantId);
-    updateContractForm(tenantId, {
-      invoices: current.invoices.filter((invoice) => invoice.id !== attachmentId)
-    });
+  const handleInvoicesUpload = async (tenantId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const referenceMonth = new Date().toISOString().slice(0, 7);
+
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("reference_month", referenceMonth);
+
+      try {
+        await authorizedFetch(`/saas/tenants/${tenantId}/contract/invoices`, {
+          method: "POST",
+          body: formData
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao enviar nota fiscal");
+      }
+    }
+
+    await loadContractForTenant(tenantId);
+    setError(null);
+    setMessage("Notas fiscais atualizadas.");
   };
 
-  const handleCreateProject = (event: FormEvent<HTMLFormElement>) => {
+  const handleRemoveInvoice = async (tenantId: string, attachmentId: string) => {
+    try {
+      await authorizedFetch(`/saas/tenants/${tenantId}/contract/invoices/${attachmentId}`, {
+        method: "DELETE",
+        parseJson: false
+      });
+      await loadContractForTenant(tenantId);
+      setError(null);
+      setMessage("Nota fiscal removida.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao remover nota fiscal");
+    }
+  };
+
+  const handleContractSave = async (tenantId: string) => {
+    const form = getContractForm(tenantId);
+    const amount = parseCurrencyInput(form.contractValue);
+
+    const payload: Record<string, unknown> = {
+      status: form.status,
+      notes: form.notes || undefined,
+      contract_value: Number.isFinite(amount) && amount > 0 ? amount : undefined,
+      start_date: form.startDate || undefined,
+      renewal_date: form.renewalDate || undefined
+    };
+
+    try {
+      await authorizedFetch(`/saas/tenants/${tenantId}/contract`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+      });
+      await loadContractForTenant(tenantId);
+      setError(null);
+      setMessage("Contrato atualizado com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar contrato");
+    }
+  };
+
+  const handleCreateProject = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!projectForm.name.trim()) {
       setError("Informe um nome de projeto.");
       return;
     }
-    const id = makeId();
-    const record: ProjectRecord = {
-      id,
+
+    const payload: Record<string, unknown> = {
       name: projectForm.name.trim(),
-      description: projectForm.description.trim(),
-      status: projectForm.status,
-      progress: 0,
-      lead: projectForm.lead.trim(),
-      squad: [],
-      started_at: new Date().toISOString(),
-      target_date: projectForm.targetDate || undefined,
-      tasks: [],
-      updated_at: new Date().toISOString()
+      status: slugify(projectForm.status, "planning"),
+      description: projectForm.description.trim() || undefined,
+      target_date: projectForm.targetDate || undefined
     };
-    setProjectBoard((prev) => [...prev, record]);
-    setProjectForm(createDefaultProjectForm());
-    setTaskForm(createDefaultTaskForm());
-    setActiveProjectId(id);
-    setMessage(`Projeto ${record.name} cadastrado.`);
-    setError(null);
+
+    try {
+      const response = await authorizedFetch<{ project: DashboardProject }>("/saas/projects", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      const created = response.project;
+      setProjectForm(createDefaultProjectForm());
+      setTaskForm(createDefaultTaskForm());
+      setMessage(`Projeto ${created?.name ?? projectForm.name.trim()} cadastrado.`);
+      setError(null);
+      await loadOverview();
+      if (created?.id) {
+        setActiveProjectId(created.id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao criar projeto");
+    }
   };
 
-  const handleProjectStatusChange = (projectId: string, status: string) => {
-    setProjectBoard((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? { ...project, status, updated_at: new Date().toISOString() }
-          : project
-      )
-    );
+  const handleProjectStatusChange = async (projectId: string, status: string) => {
+    const normalized = slugify(status, "in_progress");
+    try {
+      await authorizedFetch(`/saas/projects/${projectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: normalized })
+      });
+      await loadOverview();
+      setError(null);
+      setMessage("Status do projeto atualizado.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar status do projeto");
+    }
   };
 
-  const handleAddTask = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!activeProjectId) return;
+    if (!activeProjectId) {
+      setError("Selecione um projeto antes de adicionar atividades.");
+      return;
+    }
     if (!taskForm.title.trim()) {
       setError("Informe um título para a atividade.");
       return;
     }
-    const newTask: ProjectTask = {
-      id: makeId(),
+
+    const payload: Record<string, unknown> = {
       title: taskForm.title.trim(),
-      owner: taskForm.owner.trim() || "Equipe",
+      owner: taskForm.owner.trim() || undefined,
       status: "pending",
       due_date: taskForm.dueDate || undefined,
-      notes: taskForm.notes.trim() || undefined,
-      created_at: new Date().toISOString(),
-      completed_at: null
+      notes: taskForm.notes.trim() || undefined
     };
-    setProjectBoard((prev) =>
-      prev.map((project) => {
-        if (project.id !== activeProjectId) return project;
-        const tasks = [...project.tasks, newTask];
-        return withUpdatedTasks(project, tasks);
-      })
-    );
-    setTaskForm(createDefaultTaskForm());
-    setMessage(`Atividade ${newTask.title} adicionada.`);
-    setError(null);
+
+    try {
+      await authorizedFetch(`/saas/projects/${activeProjectId}/tasks`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      setTaskForm(createDefaultTaskForm());
+      setMessage("Atividade adicionada.");
+      setError(null);
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao adicionar atividade");
+    }
   };
 
-  const handleTaskStatusChange = (
+  const handleTaskStatusChange = async (
     projectId: string,
     taskId: string,
     status: ProjectTask["status"]
   ) => {
-    setProjectBoard((prev) =>
-      prev.map((project) => {
-        if (project.id !== projectId) return project;
-        const tasks = project.tasks.map((task) => {
-          if (task.id !== taskId) return task;
-          return {
-            ...task,
-            status,
-            completed_at: status === "done" ? new Date().toISOString() : task.completed_at
-          };
-        });
-        return withUpdatedTasks(project, tasks);
-      })
-    );
+    try {
+      await authorizedFetch(`/saas/projects/${projectId}/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+      });
+      await loadOverview();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar atividade");
+    }
   };
 
-  const handleRemoveTask = (projectId: string, taskId: string) => {
-    setProjectBoard((prev) =>
-      prev.map((project) => {
-        if (project.id !== projectId) return project;
-        const tasks = project.tasks.filter((task) => task.id !== taskId);
-        return withUpdatedTasks(project, tasks);
-      })
-    );
+  const handleRemoveTask = async (projectId: string, taskId: string) => {
+    try {
+      await authorizedFetch(`/saas/projects/${projectId}/tasks/${taskId}`, {
+        method: "DELETE",
+        parseJson: false
+      });
+      await loadOverview();
+      setError(null);
+      setMessage("Atividade removida.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao remover atividade");
+    }
   };
 
   const handleFinanceFieldChange = <K extends keyof FinanceFormState>(
@@ -1152,10 +1268,10 @@ export default function DashboardPage() {
       event.target.value = "";
       return;
     }
-    const attachments: FinanceAttachment[] = Array.from(files).map((file) => ({
+    const attachments: PendingAttachment[] = Array.from(files).map((file) => ({
       id: makeId(),
       name: file.name,
-      uploaded_at: new Date().toLocaleDateString("pt-BR")
+      file
     }));
     handleFinanceFieldChange("attachments", attachments);
     event.target.value = "";
@@ -1168,7 +1284,22 @@ export default function DashboardPage() {
     );
   };
 
-  const handleCreateFinanceEntry = (event: FormEvent<HTMLFormElement>) => {
+  const uploadFinanceAttachments = async (entryId: string, attachments: PendingAttachment[]) => {
+    for (const attachment of attachments) {
+      const formData = new FormData();
+      formData.append("file", attachment.file, attachment.name);
+      try {
+        await authorizedFetch(`/saas/finance/entries/${entryId}/attachments`, {
+          method: "POST",
+          body: formData
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao enviar anexo financeiro");
+      }
+    }
+  };
+
+  const handleCreateFinanceEntry = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!financeForm.description.trim()) {
       setError("Descreva a movimentação financeira.");
@@ -1179,48 +1310,70 @@ export default function DashboardPage() {
       setError("Informe um valor positivo.");
       return;
     }
-    const entry: FinanceEntry = {
-      id: makeId(),
+
+    const payload: Record<string, unknown> = {
       entry_type: financeForm.entryType,
       category: financeForm.category,
       description: financeForm.description.trim(),
       amount: amountValue,
       due_date: financeForm.dueDate || undefined,
-      paid: false,
-      paid_at: null,
-      method: financeForm.method,
+      method: financeForm.method || undefined,
       cost_center: financeForm.costCenter || undefined,
       responsible: financeForm.responsible || undefined,
-      notes: financeForm.notes || undefined,
-      attachments: financeForm.attachments,
-      created_at: new Date().toISOString()
+      notes: financeForm.notes || undefined
     };
-    setFinanceEntries((prev) => [entry, ...prev]);
-    setFinanceForm(createDefaultFinanceForm());
-    setMessage(`Lançamento financeiro ${entry.description} criado.`);
-    setError(null);
+
+    try {
+      const response = await authorizedFetch<{ entry: FinanceEntry }>("/saas/finance/entries", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      const created = response.entry;
+
+      if (financeForm.attachments.length) {
+        await uploadFinanceAttachments(created.id, financeForm.attachments);
+      }
+
+      await loadFinanceEntries();
+      setFinanceForm(createDefaultFinanceForm());
+      setMessage(`Lançamento financeiro ${created.description} criado.`);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao registrar lançamento");
+    }
   };
 
-  const handleFinanceTogglePaid = (entryId: string) => {
-    setFinanceEntries((prev) =>
-      prev.map((entry) =>
-        entry.id === entryId
-          ? {
-              ...entry,
-              paid: !entry.paid,
-              paid_at: !entry.paid ? new Date().toISOString() : null
-            }
-          : entry
-      )
-    );
+  const handleFinanceTogglePaid = async (entryId: string, currentPaid: boolean) => {
+    try {
+      await authorizedFetch(`/saas/finance/entries/${entryId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ paid: !currentPaid })
+      });
+      await loadFinanceEntries();
+      setError(null);
+      setMessage(!currentPaid ? "Lançamento marcado como pago." : "Baixa revertida.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar lançamento");
+    }
   };
 
-  const handleSyncCity = (cityId: string) => {
-    const city = cityInsights.find((item) => item.id === cityId);
-    setMessage(
-      `Sincronização de dados iniciada para ${city?.name ?? "cidade selecionada"}.`
-    );
-    setError(null);
+  const handleSyncCity = async (tenantId: string) => {
+    if (!tenantId) return;
+    try {
+      await authorizedFetch(`/saas/cities/${tenantId}/sync`, {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      await loadOverview();
+      const city = cityInsights.find((item) => item.tenant_id === tenantId);
+      setMessage(
+        `Sincronização de dados iniciada para ${city?.name ?? "cidade selecionada"}.`
+      );
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao sincronizar cidade");
+    }
   };
 
   const handleConfigFieldChange = <K extends keyof ConfigFormState>(
@@ -1241,31 +1394,66 @@ export default function DashboardPage() {
     setConfigForm((prev) => ({ ...prev, password: "", confirmPassword: "" }));
   };
 
-  const updateAppSettings = (cityId: string, patch: Partial<AppCustomizationState>) => {
+  const updateAppSettings = (tenantId: string, patch: Partial<AppCustomizationState>) => {
     setAppSettings((prev) => {
-      const base = prev[cityId] ?? {
-        ...createDefaultAppCustomization(),
-        welcomeMessage: `Bem-vindo ao app de ${
-          cityInsights.find((city) => city.id === cityId)?.name ?? "sua cidade"
-        }`
-      };
-      return { ...prev, [cityId]: { ...base, ...patch } };
+      const city = cityInsights.find((item) => item.tenant_id === tenantId);
+      const base = prev[tenantId] ??
+        createDefaultAppCustomization({
+          tenantId,
+          welcomeMessage: `Bem-vindo ao app de ${city?.name ?? "sua cidade"}`
+        });
+      return { ...prev, [tenantId]: { ...base, ...patch } };
     });
   };
 
-  const handleAppLogoUpload = (cityId: string, files: FileList | null) => {
-    if (!files || files.length === 0) {
-      updateAppSettings(cityId, { logoFileName: undefined });
-      return;
+  const handleAppLogoUpload = async (tenantId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    formData.append("logo", files[0]);
+
+    try {
+      await authorizedFetch(`/saas/tenants/${tenantId}/app/logo`, {
+        method: "POST",
+        body: formData
+      });
+      await loadAppCustomization(tenantId);
+      setError(null);
+      setMessage("Logo atualizada com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao enviar logo");
     }
-    updateAppSettings(cityId, { logoFileName: files[0].name });
   };
 
-  const handleAppSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleAppSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const city = cityInsights.find((item) => item.id === selectedAppCityId);
-    setMessage(`Customizações do app de ${city?.name ?? "cidade selecionada"} atualizadas.`);
-    setError(null);
+    if (!selectedAppCityId) return;
+
+    const settings =
+      appSettings[selectedAppCityId] ?? createDefaultAppCustomization({ tenantId: selectedAppCityId });
+
+    const payload: Record<string, unknown> = {
+      primary_color: settings.primaryColor,
+      secondary_color: settings.secondaryColor,
+      weather_provider: settings.weatherProvider ?? null,
+      weather_api_key: settings.weatherApiKey ?? null,
+      welcome_message: settings.welcomeMessage ?? null,
+      enable_push: settings.enablePush,
+      enable_weather: settings.enableWeather
+    };
+
+    try {
+      await authorizedFetch(`/saas/tenants/${selectedAppCityId}/app`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+      });
+      const city = cityInsights.find((item) => item.tenant_id === selectedAppCityId);
+      setMessage(`Customizações do app de ${city?.name ?? "cidade selecionada"} atualizadas.`);
+      setError(null);
+      await loadAppCustomization(selectedAppCityId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar personalização");
+    }
   };
 
   const renderIcon = (icon: string) => {
@@ -1432,7 +1620,7 @@ export default function DashboardPage() {
                 <li key={project.id}>
                   <div>
                     <strong>{project.name}</strong>
-                    <span>{project.status}</span>
+                    <span>{projectStatusLabel(project.status)}</span>
                   </div>
                   {project.description && <p>{project.description}</p>}
                   {project.progress != null && (
@@ -1735,7 +1923,7 @@ export default function DashboardPage() {
                   <div className="project-board-head">
                     <div>
                       <strong>{project.name}</strong>
-                      <span>{project.status}</span>
+                      <span>{projectStatusLabel(project.status)}</span>
                     </div>
                     <button type="button" onClick={() => setActiveProjectId(project.id)}>
                       Detalhes
@@ -1936,7 +2124,9 @@ export default function DashboardPage() {
                         <div>
                           <strong>{task.title}</strong>
                           <span>
-                            {task.owner} • {task.due_date ? task.due_date : "Sem prazo"}
+                            {task.owner ?? "Equipe"} • {task.due_date
+                              ? new Date(task.due_date).toLocaleDateString("pt-BR")
+                              : "Sem prazo"}
                           </span>
                           {task.notes && <p>{task.notes}</p>}
                         </div>
@@ -2073,14 +2263,18 @@ export default function DashboardPage() {
                       <td>{FINANCE_TYPE_LABELS[entry.entry_type]}</td>
                       <td>{entry.category}</td>
                       <td>{formatCurrency(entry.amount)}</td>
-                      <td>{entry.due_date || "—"}</td>
+                      <td>
+                        {entry.due_date
+                          ? new Date(entry.due_date).toLocaleDateString("pt-BR")
+                          : "—"}
+                      </td>
                       <td>
                         <span className={`status-pill ${entry.paid ? "is-paid" : "is-pending"}`}>
                           {entry.paid ? "Pago" : "Pendente"}
                         </span>
                       </td>
                       <td>
-                        <button type="button" onClick={() => handleFinanceTogglePaid(entry.id)}>
+                        <button type="button" onClick={() => handleFinanceTogglePaid(entry.id, entry.paid)}>
                           {entry.paid ? "Reabrir" : "Dar baixa"}
                         </button>
                       </td>
@@ -2202,7 +2396,6 @@ export default function DashboardPage() {
                 {financeForm.attachments.map((attachment) => (
                   <li key={attachment.id}>
                     <span>{attachment.name}</span>
-                    <small>{attachment.uploaded_at}</small>
                     <button type="button" onClick={() => handleFinanceAttachmentRemove(attachment.id)}>
                       Remover
                     </button>
@@ -2319,7 +2512,8 @@ export default function DashboardPage() {
   );
 
   const renderApp = () => {
-    const currentAppSettings = appSettings[selectedAppCityId] ?? createDefaultAppCustomization();
+    const currentAppSettings =
+      appSettings[selectedAppCityId] ?? createDefaultAppCustomization({ tenantId: selectedAppCityId });
     return (
       <div className="dashboard-section">
         <header className="dashboard-section__header">
@@ -2337,7 +2531,7 @@ export default function DashboardPage() {
                   onChange={(event) => setSelectedAppCityId(event.target.value)}
                 >
                   {cityInsights.map((city) => (
-                    <option key={`app-${city.id}`} value={city.id}>
+                    <option key={`app-${city.tenant_id}`} value={city.tenant_id}>
                       {city.name}
                     </option>
                   ))}
@@ -2361,8 +2555,16 @@ export default function DashboardPage() {
                     }
                   />
                 </label>
-                {currentAppSettings.logoFileName && (
-                  <p className="muted">{currentAppSettings.logoFileName}</p>
+                {currentAppSettings.logoUrl && (
+                  <p className="muted">
+                    <a
+                      href={currentAppSettings.logoUrl ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Visualizar logo atual
+                    </a>
+                  </p>
                 )}
                 <label>
                   Cor primária
@@ -2392,7 +2594,7 @@ export default function DashboardPage() {
                   Mensagem de boas-vindas
                   <textarea
                     rows={3}
-                    value={currentAppSettings.welcomeMessage}
+                    value={currentAppSettings.welcomeMessage ?? ""}
                     onChange={(event) =>
                       updateAppSettings(selectedAppCityId, {
                         welcomeMessage: event.target.value
@@ -2417,7 +2619,7 @@ export default function DashboardPage() {
                 <label>
                   Provedor de clima
                   <select
-                    value={currentAppSettings.weatherProvider}
+                    value={currentAppSettings.weatherProvider ?? "OpenWeather"}
                     onChange={(event) =>
                       updateAppSettings(selectedAppCityId, { weatherProvider: event.target.value })
                     }
@@ -2430,7 +2632,7 @@ export default function DashboardPage() {
                 <label>
                   API Key clima
                   <input
-                    value={currentAppSettings.weatherApiKey}
+                    value={currentAppSettings.weatherApiKey ?? ""}
                     onChange={(event) =>
                       updateAppSettings(selectedAppCityId, { weatherApiKey: event.target.value })
                     }
@@ -2590,6 +2792,15 @@ export default function DashboardPage() {
                   }
                 />
               </label>
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="topbar-primary"
+                  onClick={() => selectedTenant && handleContractSave(selectedTenant.id)}
+                >
+                  Salvar contrato
+                </button>
+              </div>
             </div>
 
             <div className="contract-column">
@@ -2601,20 +2812,18 @@ export default function DashboardPage() {
                     selectedTenant && handleContractFile(selectedTenant.id, event.target.files)
                   }
                 />
-                {selectedContract.contractFileName ? (
+                {selectedContract.contractFileUrl ? (
                   <p className="upload-item">
-                    <span>{selectedContract.contractFileName}</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        selectedTenant && updateContractForm(selectedTenant.id, { contractFileName: undefined })
-                      }
+                    <a
+                      href={selectedContract.contractFileUrl ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      Remover
-                    </button>
+                      Abrir contrato vigente
+                    </a>
                   </p>
                 ) : (
-                  <p className="muted">Anexe o PDF ou link do contrato vigente.</p>
+                  <p className="muted">Anexe o PDF do contrato vigente.</p>
                 )}
               </div>
 
@@ -2633,8 +2842,13 @@ export default function DashboardPage() {
                   <ul className="attachment-list">
                     {selectedContract.invoices.map((invoice) => (
                       <li key={invoice.id}>
-                        <span>{invoice.name}</span>
+                        <span>{invoice.referenceMonth ?? invoice.name}</span>
                         <small>{invoice.uploadedAt}</small>
+                        {invoice.url && (
+                          <a href={invoice.url} target="_blank" rel="noopener noreferrer">
+                            Abrir
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={() => selectedTenant && handleRemoveInvoice(selectedTenant.id, invoice.id)}
@@ -2687,7 +2901,7 @@ export default function DashboardPage() {
               Cidade
               <select value={selectedCityId} onChange={(event) => setSelectedCityId(event.target.value)}>
                 {cityInsights.map((city) => (
-                  <option key={city.id} value={city.id}>
+                  <option key={city.tenant_id} value={city.tenant_id}>
                     {city.name}
                   </option>
                 ))}
@@ -2730,7 +2944,7 @@ export default function DashboardPage() {
               <h4>Destaques recentes</h4>
               <ul>
                 {selectedCity.highlights.map((highlight, index) => (
-                  <li key={`${selectedCity.id}-highlight-${index}`}>{highlight}</li>
+                  <li key={`${selectedCity.tenant_id}-highlight-${index}`}>{highlight}</li>
                 ))}
               </ul>
             </div>

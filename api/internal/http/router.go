@@ -234,6 +234,7 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 
 	saasRouter.Group(func(admin chi.Router) {
 		admin.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER"))
+		admin.Get("/metrics/overview", h.DashboardOverview)
 		admin.Get("/tenants", h.ListTenants)
 		admin.Post("/tenants", h.CreateTenant)
 		admin.Route("/users", func(u chi.Router) {
@@ -247,6 +248,56 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 		admin.Post("/tenants/import", h.ImportTenants)
 		admin.Post("/tenants/{id}/dns/provision", h.ProvisionTenantDNS)
 		admin.Post("/tenants/{id}/dns/check", h.CheckTenantDNS)
+		admin.Route("/projects", func(p chi.Router) {
+			p.Get("/", h.ListProjects)
+			p.Post("/", h.CreateProject)
+			p.Patch("/{id}", h.UpdateProject)
+			p.Delete("/{id}", h.DeleteProject)
+			p.Post("/{id}/tasks", h.CreateProjectTask)
+			p.Patch("/{id}/tasks/{taskID}", h.UpdateProjectTask)
+			p.Delete("/{id}/tasks/{taskID}", h.DeleteProjectTask)
+		})
+		admin.Route("/finance", func(f chi.Router) {
+			f.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER", "SAAS_FINANCE"))
+			f.Get("/entries", h.ListFinanceEntries)
+			f.Post("/entries", h.CreateFinanceEntry)
+			f.Patch("/entries/{id}", h.UpdateFinanceEntry)
+			f.Delete("/entries/{id}", h.DeleteFinanceEntry)
+			f.Post("/entries/{id}/attachments", h.UploadFinanceAttachment)
+			f.Delete("/entries/{id}/attachments/{attachmentID}", h.DeleteFinanceAttachment)
+		})
+		admin.Route("/communications", func(c chi.Router) {
+			c.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER", "SAAS_SUPPORT"))
+			c.Get("/", h.GetCommunicationCenter)
+			c.Post("/announcements", h.CreateAnnouncement)
+			c.Post("/push/{id}/approve", h.ApprovePushNotification)
+			c.Post("/push/{id}/reject", h.RejectPushNotification)
+		})
+		admin.Route("/cities", func(c chi.Router) {
+			c.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER", "SAAS_SUPPORT"))
+			c.Get("/", h.ListCityInsights)
+			c.Post("/{id}/sync", h.SyncCityInsight)
+		})
+		admin.Route("/access", func(a chi.Router) {
+			a.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER"))
+			a.Get("/logs", h.ListAccessLogs)
+			a.Post("/logs", h.CreateAccessLog)
+		})
+		admin.Route("/tenants/{id}/contract", func(c chi.Router) {
+			c.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER", "SAAS_FINANCE"))
+			c.Get("/", h.GetTenantContract)
+			c.Put("/", h.UpdateTenantContract)
+			c.Put("/modules", h.UpdateTenantModules)
+			c.Post("/file", h.UploadTenantContractFile)
+			c.Post("/invoices", h.UploadTenantInvoice)
+			c.Delete("/invoices/{invoiceID}", h.DeleteTenantInvoice)
+		})
+		admin.Route("/tenants/{id}/app", func(app chi.Router) {
+			app.Use(httpmiddleware.RequireSaaSRoles("SAAS_ADMIN", "SAAS_OWNER"))
+			app.Get("/", h.GetAppCustomization)
+			app.Put("/", h.UpdateAppCustomization)
+			app.Post("/logo", h.UploadAppLogo)
+		})
 		admin.Route("/monitor", func(m chi.Router) {
 			m.Get("/summary", h.MonitorSummary)
 			m.Post("/run", h.MonitorRun)
