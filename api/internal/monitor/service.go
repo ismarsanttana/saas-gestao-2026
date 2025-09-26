@@ -261,6 +261,7 @@ func (s *Service) evaluateAlerts(ctx context.Context, t *tenant.Tenant, health H
 			continue
 		}
 		alert := Alert{
+			ID:          uuid.New(),
 			TenantID:    &t.ID,
 			AlertType:   candidate.alertType,
 			Severity:    candidate.severity,
