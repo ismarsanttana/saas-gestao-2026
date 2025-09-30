@@ -1,0 +1,12 @@
+# Exclude VCS metadata and local caches
+.git
+.gocache
+.cache
+
+# Exclude build artefacts
+bin
+api
+
+# Node / tooling caches
+node_modules
+npm-debug.log
