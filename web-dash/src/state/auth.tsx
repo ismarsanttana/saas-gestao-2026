@@ -59,11 +59,41 @@ async function parseResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   if (!text) {
     return { data: null, error: null };
   }
-  const parsed = JSON.parse(text) as Partial<ApiEnvelope<T>>;
-  return {
-    data: (parsed.data ?? null) as T | null,
-    error: parsed.error ?? null
-  };
+
+  try {
+    const parsed = JSON.parse(text) as Partial<ApiEnvelope<T>>;
+    return {
+      data: (parsed.data ?? null) as T | null,
+      error: parsed.error ?? null
+    };
+  } catch (err) {
+    const status = response.status;
+    const trimmed = text.trim();
+    const looksLikeHTML = /^</.test(trimmed);
+    const looksLikeStatusText = /^(\d{3}\s)/.test(trimmed);
+
+    let message = trimmed.replace(/\s+/g, " ").slice(0, 160);
+    if (!message || looksLikeHTML || looksLikeStatusText) {
+      if (status === 404) {
+        message = "Recurso não encontrado";
+      } else if (status === 401) {
+        message = "Sessão expirada. Faça login novamente.";
+      } else if (status >= 500) {
+        message = "Servidor indisponível. Tente novamente.";
+      } else {
+        message = `Resposta inválida da API (status ${status || "desconhecido"})`;
+      }
+    }
+
+    const code = status > 0 ? `HTTP_${status}` : "INVALID_JSON";
+    return {
+      data: null,
+      error: {
+        code,
+        message
+      }
+    };
+  }
 }
 
 function mapApiProfile(profile: ApiSaaSProfile): SessionUser {

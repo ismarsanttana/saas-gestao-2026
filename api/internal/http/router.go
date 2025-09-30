@@ -188,6 +188,20 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 
 	r := chi.NewRouter()
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		WriteError(w, http.StatusNotFound, "NOT_FOUND", "rota não encontrada", map[string]any{
+			"path":   r.URL.Path,
+			"method": r.Method,
+		})
+	})
+
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método não permitido", map[string]any{
+			"path":   r.URL.Path,
+			"method": r.Method,
+		})
+	})
+
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(httpmiddleware.Logging)
@@ -230,6 +244,20 @@ func NewRouter(cfg *config.Config, pool *pgxpool.Pool, redisClient *redis.Client
 	})
 
 	saasRouter := chi.NewRouter()
+
+	saasRouter.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		WriteError(w, http.StatusNotFound, "NOT_FOUND", "rota SaaS não encontrada", map[string]any{
+			"path":   r.URL.Path,
+			"method": r.Method,
+		})
+	})
+
+	saasRouter.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "método não permitido", map[string]any{
+			"path":   r.URL.Path,
+			"method": r.Method,
+		})
+	})
 	saasRouter.Use(httpmiddleware.Auth(h.authService.JWT()))
 
 	saasRouter.Group(func(admin chi.Router) {
