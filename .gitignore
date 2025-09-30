@@ -32,3 +32,4 @@ infra/**/volumes/
 # Outros
 *.db
 *.sqlite
+api/.gocache/

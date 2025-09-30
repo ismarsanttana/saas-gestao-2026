@@ -1,14 +1,12 @@
 FROM golang:1.22-alpine AS builder
-
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /api ./cmd/api
 
 FROM alpine:3.19
 WORKDIR /app
-COPY --from=builder /app/bin/api ./api
-COPY --from=builder /app/.env.example /app/.env.example
-EXPOSE 8080
+COPY --from=builder /api /app/api
+EXPOSE 8081
 CMD ["./api"]
