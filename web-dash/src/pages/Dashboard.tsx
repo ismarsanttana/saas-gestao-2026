@@ -459,7 +459,7 @@ const parseCurrencyInput = (input: string) => {
 };
 
 export default function DashboardPage() {
-  const { user, logout, authorizedFetch } = useAuth();
+  const { user, isAuthenticated, logout, authorizedFetch } = useAuth();
 
   const userInitials = useMemo(() => {
     if (!user?.name) return "UB";
@@ -636,6 +636,8 @@ export default function DashboardPage() {
           setAccessAnalytics(DEFAULT_ACCESS_ANALYTICS);
         }
       }
+
+      setError(null);
     } catch (err) {
       // Mantém os valores atuais e registra erro em mensagem discreta
       const msg = err instanceof Error ? err.message : "Falha ao carregar métricas";
@@ -650,6 +652,7 @@ export default function DashboardPage() {
       );
       const entries = Array.isArray(response.entries) ? response.entries : [];
       setFinanceEntries(entries);
+      setError(null);
       return entries;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao carregar lançamentos";
@@ -819,16 +822,22 @@ export default function DashboardPage() {
   }, [user, loadTenants]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
     void loadOverview();
-  }, [loadOverview]);
+  }, [isAuthenticated, loadOverview]);
 
   useEffect(() => {
     setProjectBoard(projects.map(dashboardProjectToRecord));
   }, [projects]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
     void loadFinanceEntries();
-  }, [loadFinanceEntries]);
+  }, [isAuthenticated, loadFinanceEntries]);
 
   useEffect(() => {
     if (!selectedTenantId) return;
